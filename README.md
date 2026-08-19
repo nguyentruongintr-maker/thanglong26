@@ -23,12 +23,22 @@ Mở thẳng `index.html` bằng trình duyệt — không cần server, không 
 - Chuyền 25 năng lượng cho vịt ngay trên/dưới — **bắt buộc cùng một vạch**.
 - Vịt đang đủ 100 năng lượng không nhận chuyền được.
 - Chỉ vịt ở đúng hàng của cờ mới ngậm được cờ.
-- **Thắng:** một chú vịt mang cờ về vạch xuất phát **và** cả 4 chú đều đã rời vạch xuất phát ít nhất một lần.
+- **Thắng:** lấy được cờ **và** cả 4 chú vịt đều đã rời vạch xuất phát ít nhất một lần
+  **và** cả 4 chú đều đã quay về vạch xuất phát.
 
-### Một lời giải
+### Lời giải (16 nước, dùng đúng trọn 400 năng lượng)
 
-`Vịt 1` tiến ×2 · `Vịt 3` tiến ×2 · `Vịt 4` tiến ×1 ·
-`Vịt 2` tiến ×2 → nhận 25 từ trên + 25 từ dưới → tiến ×2 (lấy cờ) → lùi ×2 → nhận 25 + 25 → lùi ×2.
+Tổng năng lượng 400 = đúng 16 nước đi. Lời giải **không được phí một nước nào**.
+
+```
+D1 tiến · D4 tiến · D3 tiến · D4 chuyền lên D3 · D3 tiến
+D2 tiến · D1 chuyền xuống D2 · D2 tiến · D3 chuyền lên D2
+D2 tiến · D2 tiến (lấy cờ) · D2 lùi · D2 lùi
+D3 chuyền lên D2 · D2 lùi · D1 chuyền xuống D2 · D2 lùi (về đích, mang cờ)
+D1 lùi · D3 lùi · D4 chuyền lên D3 · D3 lùi · D4 lùi
+```
+
+Kết thúc: cả 4 chú ở vạch 0, năng lượng 0/0/0/0.
 
 ## Thêm trò chơi mới
 

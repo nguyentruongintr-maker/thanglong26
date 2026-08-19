@@ -100,24 +100,32 @@
   transform:translate(-50%,-50%);
   cursor:pointer;
   z-index:3;
-  transition:left .46s cubic-bezier(.33,1.02,.42,1);
+  transition:left .46s cubic-bezier(.33,1.02,.42,1), transform .2s ease;
   -webkit-tap-highlight-color:transparent;
 }
 .duck:focus-visible{outline:none}
-.duck:focus-visible .duck-art{outline:3px solid #fff;outline-offset:4px;border-radius:40%}
+.duck:focus-visible .duck-body{outline:3px solid #fff;outline-offset:4px;border-radius:40%}
 
-.duck-art{
+/* .duck-body giữ hiệu ứng bồng bềnh / bơi, .duck-art giữ hướng quay đầu.
+   Tách hai lớp để transform lật ngang không bị animation ghi đè. */
+.duck-body{
   position:relative;
   display:block;
   animation:float 3.4s ease-in-out infinite;
   animation-delay:var(--d);
-  transition:transform .2s ease;
 }
-.duck-art svg{display:block;width:100%;height:auto;filter:drop-shadow(0 7px 9px rgba(0,30,50,.32))}
 @keyframes float{0%,100%{transform:translateY(0) rotate(-1.2deg)}50%{transform:translateY(-5%) rotate(1.2deg)}}
 
-.duck:hover .duck-art{transform:scale(1.06)}
-.duck.moving .duck-art{animation:paddle .46s ease-in-out}
+.duck-art{
+  position:relative;
+  display:block;
+  transform:scaleX(var(--face,1));
+  transition:transform .34s cubic-bezier(.4,0,.2,1);
+}
+.duck-art svg{display:block;width:100%;height:auto;filter:drop-shadow(0 7px 9px rgba(0,30,50,.32))}
+
+.duck:hover{transform:translate(-50%,-50%) scale(1.06)}
+.duck.moving .duck-body{animation:paddle .46s ease-in-out}
 @keyframes paddle{
   0%{transform:translateY(0) rotate(0)}
   30%{transform:translateY(-12%) rotate(-7deg)}
@@ -143,7 +151,7 @@
   50%{transform:translate(-50%,-50%) scale(1.08)}
 }
 
-.duck.empty .duck-art svg{filter:drop-shadow(0 7px 9px rgba(0,30,50,.32)) saturate(.4) brightness(.82)}
+.duck.empty .duck-body svg{filter:drop-shadow(0 7px 9px rgba(0,30,50,.32)) saturate(.4) brightness(.82)}
 
 /* energy badge */
 .badge{
@@ -171,13 +179,13 @@
 .badge.bump{animation:bump .4s cubic-bezier(.3,1.4,.5,1)}
 @keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.34)}100%{transform:scale(1)}}
 
-/* "đã rời vạch" tick */
+/* Dấu tiến độ: ↗ = đã rời vạch nhưng chưa về, ✓ = đã về vạch xuất phát */
 .left-tick{
   position:absolute;
   left:-3px;top:-3px;
   width:17px;height:17px;
   border-radius:50%;
-  background:var(--green);
+  background:#f0932b;
   color:#fff;
   font-size:11px;
   font-weight:900;
@@ -185,9 +193,10 @@
   box-shadow:0 2px 6px rgba(0,40,20,.35);
   opacity:0;
   transform:scale(.4);
-  transition:opacity .25s ease, transform .3s cubic-bezier(.3,1.5,.5,1);
+  transition:opacity .25s ease, transform .3s cubic-bezier(.3,1.5,.5,1), background .25s ease;
 }
 .duck.hasleft .left-tick{opacity:1;transform:scale(1)}
+.duck.done .left-tick{background:var(--green)}
 
 /* flag carried in the beak */
 .held{
@@ -271,6 +280,7 @@
   text-align:center;
 }
 .hud .stat b{color:var(--accent)}
+.hud .k-short{display:none}
 
 .actionbar{
   padding:12px;
@@ -318,6 +328,8 @@
 .rules-list{text-align:left;margin:14px 0 0;padding-left:20px;color:#d5e9f7;font-size:14px;line-height:1.7}
 .rules-list li{margin-bottom:5px}
 .rules-list b{color:var(--accent)}
+.rules-note{text-align:left;margin:12px 0 0;font-size:13px;line-height:1.6;color:#a9c8de;border-left:3px solid rgba(255,210,63,.5);padding-left:11px}
+.rules-note b{color:var(--accent)}
 
 @media (max-width:700px){
   .board{aspect-ratio:1.5/1}
@@ -328,8 +340,11 @@
   .topbar .lbl{display:none}
   .topbar .btn{padding:0 13px}
   .brand-text p{display:none}
-  .hud .stat.energy{display:none}
-  .hud .stat{padding:7px 10px;font-size:12px}
+  .hud .stat.moves{display:none}
+  .hud .stat{padding:7px 8px;font-size:12px}
+  /* Rút gọn nhãn để 3 ô thống kê nằm gọn trên một hàng */
+  .hud .k-long{display:none}
+  .hud .k-short{display:inline}
 }
 
 /* Màn hình rộng: giới hạn bảng theo chiều cao khung nhìn */
@@ -371,9 +386,10 @@
   </div>
 
   <div class="hud">
-    <div class="stat">Lượt đi: <b id="statMoves">0</b></div>
-    <div class="stat">Đã rời vạch: <b id="statLeft">0/4</b></div>
-    <div class="stat energy">Tổng năng lượng: <b id="statEnergy">400</b></div>
+    <div class="stat moves"><span class="k-long">Lượt đi</span><span class="k-short">Lượt</span>: <b id="statMoves">0</b></div>
+    <div class="stat"><span class="k-long">Đã rời vạch</span><span class="k-short">Rời vạch</span>: <b id="statLeft">0/4</b></div>
+    <div class="stat"><span class="k-long">Đã về vạch</span><span class="k-short">Về vạch</span>: <b id="statHome">0/4</b></div>
+    <div class="stat energy"><span class="k-long">Năng lượng</span><span class="k-short">NL</span>: <b id="statEnergy">400</b></div>
   </div>
 
   <div class="panel actionbar">
@@ -394,7 +410,7 @@
   <div class="modal">
     <div class="trophy">🏆</div>
     <h2 id="winTitle">Chúc mừng!</h2>
-    <p>Chú vịt đã mang lá cờ 🚩 về đến vạch xuất phát, và cả bốn chú vịt đều đã rời vạch ít nhất một lần.</p>
+    <p>Cả bốn chú vịt đều đã rời vạch xuất phát, lá cờ 🚩 đã được mang về, và tất cả đã quay lại vạch xuất phát an toàn.</p>
     <p id="winStats" style="color:var(--accent);font-weight:800"></p>
     <div class="modal-actions">
       <button class="btn btn-primary" id="winReplay" type="button">↻ Chơi lại</button>
@@ -419,14 +435,18 @@
   <div class="modal">
     <h2 id="rulesTitle">Luật chơi</h2>
     <ol class="rules-list">
-      <li>Có <b>4 chú vịt vàng</b> ở vạch xuất phát bên phải, mỗi chú có <b>100 năng lượng</b>.</li>
-      <li>Ngoài vạch xuất phát còn <b>4 vạch</b> nữa. <b>Lá cờ đỏ</b> ở vạch thứ 4 (ngoài cùng bên trái), <b>hàng thứ 2</b> từ trên xuống.</li>
-      <li>Mỗi lần đi (tiến hoặc lùi) một vạch tốn <b>25 năng lượng</b>.</li>
-      <li>Một chú vịt có thể <b>chuyền 25 năng lượng</b> cho chú vịt ngay trên hoặc ngay dưới mình — nhưng <b>cả hai phải đứng cùng một vạch</b>.</li>
-      <li>Vịt đang có <b>đủ 100 năng lượng</b> thì không nhận chuyền được.</li>
-      <li>Chỉ chú vịt ở <b>đúng hàng của lá cờ</b> mới ngậm được cờ khi tới vạch cuối.</li>
-      <li><b>Mục tiêu:</b> đưa một chú vịt đi lấy cờ rồi quay về vạch xuất phát, và <b>mỗi chú vịt phải rời vạch xuất phát ít nhất một lần</b>.</li>
+      <li><b>Giành cờ và quay trở về.</b></li>
+      <li>Tất cả chú vịt cần <b>rời khỏi vạch xuất phát ít nhất 1 lần</b>.</li>
+      <li>Tất cả chú vịt cần <b>trở về vạch xuất phát</b> khi đã lấy được cờ.</li>
+      <li>Mỗi lần di chuyển mất <b>25 năng lượng</b>.</li>
+      <li>Có thể <b>chuyển năng lượng</b> cho nhau, mỗi lần <b>25 năng lượng</b>.</li>
+      <li>Vịt đã <b>đầy năng lượng</b> sẽ không thể nhận thêm.</li>
     </ol>
+    <p class="rules-note">
+      Lưu ý: chỉ chuyền được cho chú vịt ngay <b>trên</b> hoặc ngay <b>dưới</b> mình,
+      và <b>cả hai phải đang đứng cùng một vạch</b>. Chỉ chú vịt ở đúng hàng của lá cờ
+      mới ngậm được cờ.
+    </p>
     <div class="modal-actions">
       <button class="btn btn-primary" id="rulesClose" type="button">Đã hiểu</button>
     </div>
@@ -505,7 +525,8 @@
   function newState() {
     var ducks = [];
     for (var r = 0; r < ROWS; r++) {
-      ducks.push({ row: r, col: 0, energy: MAX, hasFlag: false, hasLeft: false });
+      // face: 1 = quay đầu sang trái (hướng tiến tới cờ), -1 = quay đầu sang phải (hướng lùi)
+      ducks.push({ row: r, col: 0, energy: MAX, hasFlag: false, hasLeft: false, face: 1 });
     }
     return { ducks: ducks, flagTaken: false, selected: null, moves: 0, won: false };
   }
@@ -535,6 +556,13 @@
   function leftCount() {
     var n = 0;
     for (var i = 0; i < ROWS; i++) if (state.ducks[i].hasLeft) n++;
+    return n;
+  }
+
+  // Số vịt đã quay về vạch xuất phát (và đã từng rời vạch ít nhất một lần).
+  function homeCount() {
+    var n = 0;
+    for (var i = 0; i < ROWS; i++) if (state.ducks[i].hasLeft && state.ducks[i].col === 0) n++;
     return n;
   }
 
@@ -599,9 +627,11 @@
       b.style.setProperty("--cy", rowY(i) + "%");
       b.innerHTML =
         '<span class="ring"></span>' +
-        '<span class="duck-art" style="--d:' + (i * 0.35) + 's">' +
-          duckSVG(i === FLAG_ROW) +
-          '<span class="held">' + heldFlagSVG() + '</span>' +
+        '<span class="duck-body" style="--d:' + (i * 0.35) + 's">' +
+          '<span class="duck-art">' +
+            duckSVG(i === FLAG_ROW) +
+            '<span class="held">' + heldFlagSVG() + '</span>' +
+          '</span>' +
         '</span>' +
         '<span class="badge"><span class="val">100</span><i class="bolt">⚡</i></span>' +
         '<span class="left-tick">✓</span>' +
@@ -616,14 +646,19 @@
   function render() {
     for (var i = 0; i < ROWS; i++) {
       var d = state.ducks[i], el = ducksEl[i];
+      var done = d.hasLeft && d.col === 0;
       el.style.setProperty("--cx", colX(d.col) + "%");
+      el.style.setProperty("--face", d.face);
       el.classList.toggle("sel", state.selected === i);
       el.classList.toggle("carry", d.hasFlag);
       el.classList.toggle("hasleft", d.hasLeft);
+      el.classList.toggle("done", done);
       el.classList.toggle("empty", d.energy === 0);
+      el.querySelector(".left-tick").textContent = done ? "✓" : "↗";
       el.setAttribute("aria-label",
         NAMES[i] + ", vạch " + d.col + ", " + d.energy + " năng lượng" +
-        (d.hasFlag ? ", đang giữ cờ" : ""));
+        (d.hasFlag ? ", đang giữ cờ" : "") +
+        (done ? ", đã về vạch xuất phát" : d.hasLeft ? ", đã rời vạch xuất phát" : ""));
 
       var badge = el.querySelector(".badge");
       var val = el.querySelector(".val");
@@ -641,6 +676,7 @@
 
     els.statMoves.textContent = state.moves;
     els.statLeft.textContent = leftCount() + "/" + ROWS;
+    els.statHome.textContent = homeCount() + "/" + ROWS;
     els.statEnergy.textContent = totalEnergy();
 
     renderActions();
@@ -752,6 +788,8 @@
     busy = true;
     d.energy -= COST;
     d.col += step;
+    // Quay đầu theo hướng đi: tiến thì nhìn sang trái, lùi thì nhìn sang phải.
+    d.face = step > 0 ? 1 : -1;
     if (d.col >= 1) d.hasLeft = true;
     state.moves++;
 
@@ -803,19 +841,24 @@
 
   function afterAction(d) {
     // Thắng? Phải xét chú vịt đang giữ cờ, không chỉ chú vừa hành động —
-    // người chơi có thể mang cờ về trước rồi mới cho chú cuối rời vạch.
+    // người chơi có thể mang cờ về trước rồi mới đưa nốt các chú khác về.
     var c = carrier();
-    if (!state.won && c && c.col === 0) {
-      if (leftCount() === ROWS) {
-        state.won = true;
-        state.selected = null;
-        render();
-        confetti();
-        els.winStats.textContent = "Hoàn thành trong " + state.moves + " lượt đi · còn " + totalEnergy() + " ⚡";
-        openModal(els.winBack);
-        return;
+    if (!state.won && c && c.col === 0 && leftCount() === ROWS && homeCount() === ROWS) {
+      state.won = true;
+      state.selected = null;
+      render();
+      confetti();
+      els.winStats.textContent = "Hoàn thành trong " + state.moves + " lượt đi · còn " + totalEnergy() + " ⚡";
+      openModal(els.winBack);
+      return;
+    }
+    // Nhắc việc còn thiếu, chỉ khi chính chú giữ cờ vừa về tới vạch xuất phát.
+    if (!state.won && c && c.col === 0 && d === c) {
+      if (leftCount() < ROWS) {
+        toast("Đã mang cờ về, nhưng vẫn còn vịt chưa rời vạch xuất phát!", "bad");
+      } else if (homeCount() < ROWS) {
+        toast("Đã có cờ! Giờ đưa nốt các chú vịt còn lại về vạch xuất phát.", "bad");
       }
-      if (d === c) toast("Đã về tới nơi, nhưng vẫn còn vịt chưa rời vạch xuất phát!", "bad");
     }
     if (!state.won && isStuck()) {
       state.selected = null;
@@ -841,7 +884,7 @@
   /* ===================== Khởi động ===================== */
   function init() {
     ["board", "ruler", "fx", "toasts", "who",
-     "statMoves", "statLeft", "statEnergy",
+     "statMoves", "statLeft", "statHome", "statEnergy",
      "actFwd", "actBack", "actUp", "actDown",
      "btnReset", "btnRules", "winBack", "stuckBack", "rulesBack",
      "winReplay", "stuckReplay", "rulesClose", "winStats"].forEach(function (id) {

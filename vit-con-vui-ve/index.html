@@ -1,0 +1,904 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Vịt Con Vui Vẻ — Thăng Long 26</title>
+<meta name="description" content="Trò chơi giải đố năng lượng: đưa một chú vịt đi lấy lá cờ rồi quay về vạch xuất phát.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%A5%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/shell.css">
+<style>
+/* ===================== Ruler (0 · 25 · 50 · 75 · 100) ===================== */
+/* Trên màn hình rộng, kích thước bảng do CHIỀU CAO quyết định để hàng nút
+   điều khiển luôn nằm trong màn hình, không phải cuộn xuống mới thấy. */
+.stage{position:relative;width:100%;margin:0 auto}
+
+.ruler{
+  position:relative;
+  height:24px;
+  margin-bottom:4px;
+}
+.ruler span{
+  position:absolute;
+  top:0;
+  left:var(--cx);
+  transform:translateX(-50%);
+  font-size:clamp(11px,2.4vw,15px);
+  font-weight:900;
+  color:rgba(255,255,255,.55);
+  letter-spacing:.5px;
+}
+
+/* ===================== Board ===================== */
+.board{
+  position:relative;
+  width:100%;
+  aspect-ratio:2.15/1;
+  border-radius:22px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.18);
+  box-shadow:var(--shadow), inset 0 0 60px rgba(3,25,45,.45);
+  background:linear-gradient(180deg,#4fb3e0 0%,#3a95c8 45%,#2c7cae 100%);
+  touch-action:manipulation;
+  container-type:size;
+}
+.board::before{
+  content:"";
+  position:absolute;inset:0;
+  background:
+    radial-gradient(38% 55% at 18% 30%,rgba(255,255,255,.10),transparent 70%),
+    radial-gradient(30% 50% at 72% 75%,rgba(255,255,255,.08),transparent 70%),
+    radial-gradient(45% 60% at 92% 15%,rgba(0,50,80,.16),transparent 70%);
+  pointer-events:none;
+}
+
+.lane{
+  position:absolute;
+  left:0;right:0;
+  height:25%;
+  top:calc(var(--i) * 25%);
+  pointer-events:none;
+}
+.lane.alt{background:rgba(255,255,255,.05)}
+
+.gline{
+  position:absolute;
+  top:3%;bottom:3%;
+  left:var(--cx);
+  width:0;
+  border-left:2px dashed rgba(255,255,255,.42);
+  pointer-events:none;
+}
+.gline.start{border-left-color:rgba(255,255,255,.78)}
+.gline.finish{border-left-color:rgba(255,220,120,.85)}
+
+/* ===================== Flag on buoy ===================== */
+.buoy{
+  position:absolute;
+  left:var(--cx);
+  top:var(--cy);
+  width:clamp(32px,6.5vw,54px);
+  width:clamp(24px,13cqh,54px);
+  transform:translate(-50%,-58%);
+  pointer-events:none;
+  transition:opacity .32s ease, transform .32s ease;
+  z-index:2;
+}
+.buoy svg{display:block;width:100%;height:auto;filter:drop-shadow(0 6px 8px rgba(0,30,50,.35))}
+.pennant{animation:wave 2.4s ease-in-out infinite;transform-origin:left center}
+@keyframes wave{0%,100%{transform:skewY(0deg) scaleX(1)}50%{transform:skewY(-5deg) scaleX(.93)}}
+.buoy.gone{opacity:0;transform:translate(-50%,-58%) scale(.35)}
+
+/* ===================== Duck ===================== */
+.duck{
+  position:absolute;
+  left:var(--cx);
+  top:var(--cy);
+  width:clamp(54px,10.5vw,96px);
+  width:clamp(38px,21cqh,92px);
+  padding:0;margin:0;border:0;background:none;
+  transform:translate(-50%,-50%);
+  cursor:pointer;
+  z-index:3;
+  transition:left .46s cubic-bezier(.33,1.02,.42,1);
+  -webkit-tap-highlight-color:transparent;
+}
+.duck:focus-visible{outline:none}
+.duck:focus-visible .duck-art{outline:3px solid #fff;outline-offset:4px;border-radius:40%}
+
+.duck-art{
+  position:relative;
+  display:block;
+  animation:float 3.4s ease-in-out infinite;
+  animation-delay:var(--d);
+  transition:transform .2s ease;
+}
+.duck-art svg{display:block;width:100%;height:auto;filter:drop-shadow(0 7px 9px rgba(0,30,50,.32))}
+@keyframes float{0%,100%{transform:translateY(0) rotate(-1.2deg)}50%{transform:translateY(-5%) rotate(1.2deg)}}
+
+.duck:hover .duck-art{transform:scale(1.06)}
+.duck.moving .duck-art{animation:paddle .46s ease-in-out}
+@keyframes paddle{
+  0%{transform:translateY(0) rotate(0)}
+  30%{transform:translateY(-12%) rotate(-7deg)}
+  70%{transform:translateY(-4%) rotate(5deg)}
+  100%{transform:translateY(0) rotate(0)}
+}
+
+.ring{
+  position:absolute;
+  left:50%;top:56%;
+  width:130%;height:70%;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  border:3px solid var(--accent);
+  box-shadow:0 0 0 5px rgba(255,210,63,.20), 0 0 22px rgba(255,210,63,.55);
+  opacity:0;
+  transition:opacity .2s ease;
+  pointer-events:none;
+}
+.duck.sel .ring{opacity:1;animation:ringpulse 1.6s ease-in-out infinite}
+@keyframes ringpulse{
+  0%,100%{transform:translate(-50%,-50%) scale(1)}
+  50%{transform:translate(-50%,-50%) scale(1.08)}
+}
+
+.duck.empty .duck-art svg{filter:drop-shadow(0 7px 9px rgba(0,30,50,.32)) saturate(.4) brightness(.82)}
+
+/* energy badge */
+.badge{
+  position:absolute;
+  left:calc(100% + 5px);
+  top:-2px;
+  display:flex;
+  align-items:center;
+  gap:2px;
+  background:rgba(255,255,255,.92);
+  color:#12354f;
+  border-radius:999px;
+  padding:3px 7px;
+  font-size:clamp(10px,2vw,14px);
+  font-size:clamp(9px,3.7cqh,14px);
+  font-weight:900;
+  line-height:1;
+  white-space:nowrap;
+  box-shadow:0 3px 8px rgba(0,30,50,.28);
+  transition:background .2s ease, color .2s ease;
+}
+.badge .bolt{font-style:normal;font-size:.8em}
+.badge.low{background:#ffd9d3;color:#9e2b1a}
+.badge.zero{background:#5d6b76;color:#e6eef4}
+.badge.bump{animation:bump .4s cubic-bezier(.3,1.4,.5,1)}
+@keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.34)}100%{transform:scale(1)}}
+
+/* "đã rời vạch" tick */
+.left-tick{
+  position:absolute;
+  left:-3px;top:-3px;
+  width:17px;height:17px;
+  border-radius:50%;
+  background:var(--green);
+  color:#fff;
+  font-size:11px;
+  font-weight:900;
+  display:grid;place-items:center;
+  box-shadow:0 2px 6px rgba(0,40,20,.35);
+  opacity:0;
+  transform:scale(.4);
+  transition:opacity .25s ease, transform .3s cubic-bezier(.3,1.5,.5,1);
+}
+.duck.hasleft .left-tick{opacity:1;transform:scale(1)}
+
+/* flag carried in the beak */
+.held{
+  position:absolute;
+  left:-16%;
+  top:-14%;
+  width:50%;
+  opacity:0;
+  transform:scale(.25) rotate(-30deg);
+  transform-origin:bottom right;
+  transition:opacity .3s ease, transform .45s cubic-bezier(.3,1.4,.5,1);
+  pointer-events:none;
+}
+.duck.carry .held{opacity:1;transform:none}
+.held svg{width:100%;height:auto}
+
+.tag{
+  position:absolute;
+  left:50%;
+  top:calc(100% - 4px);
+  transform:translateX(-50%);
+  font-size:clamp(9px,1.8vw,12px);
+  font-size:clamp(8px,3cqh,12px);
+  font-weight:800;
+  color:rgba(255,255,255,.88);
+  text-shadow:0 1px 3px rgba(0,30,50,.7);
+  white-space:nowrap;
+  pointer-events:none;
+}
+
+/* ===================== FX layer ===================== */
+.fx{position:absolute;inset:0;pointer-events:none;z-index:5;overflow:hidden}
+.chip{
+  position:absolute;
+  transform:translate(-50%,-50%);
+  background:var(--accent);
+  color:#3a2a05;
+  font-weight:900;
+  font-size:clamp(11px,2.2vw,15px);
+  font-size:clamp(10px,3.5cqh,15px);
+  padding:4px 9px;
+  border-radius:999px;
+  box-shadow:0 4px 12px rgba(0,30,50,.35);
+  transition:left .5s ease, top .5s cubic-bezier(.4,0,.3,1), opacity .5s ease;
+}
+.ripple-fx{
+  position:absolute;
+  transform:translate(-50%,-50%);
+  width:40px;height:13px;
+  border:2px solid rgba(255,255,255,.75);
+  border-radius:50%;
+  animation:rip .75s ease-out forwards;
+}
+@keyframes rip{to{transform:translate(-50%,-50%) scale(2.8);opacity:0}}
+.spark{
+  position:absolute;
+  width:8px;height:8px;border-radius:50%;
+  background:#fff8d2;
+  transform:translate(-50%,-50%);
+  animation:spk .75s ease-out forwards;
+}
+@keyframes spk{to{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(0);opacity:0}}
+
+/* ===================== HUD + action bar ===================== */
+.hud{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  margin:12px 0 10px;
+  font-size:13px;
+  font-weight:800;
+}
+.hud .stat{
+  background:var(--glass);
+  border:1px solid var(--glass-line);
+  border-radius:12px;
+  padding:8px 12px;
+  color:var(--paper);
+  flex:1 1 auto;
+  text-align:center;
+}
+.hud .stat b{color:var(--accent)}
+
+.actionbar{
+  padding:12px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.actionbar .who{
+  font-size:13px;
+  font-weight:800;
+  color:var(--muted);
+  text-align:center;
+  min-height:18px;
+}
+.actionbar .who b{color:var(--accent)}
+.act-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;
+}
+@media (max-width:520px){
+  .act-grid{grid-template-columns:repeat(2,1fr)}
+}
+.act{
+  flex-direction:column;
+  gap:3px;
+  min-height:58px;
+  padding:8px 6px;
+  font-size:12px;
+  text-align:center;
+  line-height:1.15;
+}
+.act .ico{font-size:19px;line-height:1}
+
+/* ===================== Win / confetti ===================== */
+.confetti{position:fixed;inset:0;pointer-events:none;z-index:85;overflow:hidden}
+.cf{position:absolute;width:9px;height:14px;border-radius:2px;animation:fall linear forwards}
+@keyframes fall{
+  0%{transform:translateY(-30px) rotate(0);opacity:1}
+  100%{transform:translateY(105vh) rotate(720deg);opacity:.9}
+}
+.trophy{font-size:52px;line-height:1;animation:pop .6s cubic-bezier(.3,1.5,.5,1) both}
+@keyframes pop{from{transform:scale(.3) rotate(-20deg);opacity:0}to{transform:none;opacity:1}}
+
+.rules-list{text-align:left;margin:14px 0 0;padding-left:20px;color:#d5e9f7;font-size:14px;line-height:1.7}
+.rules-list li{margin-bottom:5px}
+.rules-list b{color:var(--accent)}
+
+@media (max-width:700px){
+  .board{aspect-ratio:1.5/1}
+  .badge{left:auto;right:-8px;top:auto;bottom:-2px}
+  .tag{display:none}
+
+  /* Gọn phần đầu trang để hàng nút điều khiển không bị đẩy xuống dưới màn hình */
+  .topbar .lbl{display:none}
+  .topbar .btn{padding:0 13px}
+  .brand-text p{display:none}
+  .hud .stat.energy{display:none}
+  .hud .stat{padding:7px 10px;font-size:12px}
+}
+
+/* Màn hình rộng: giới hạn bảng theo chiều cao khung nhìn */
+@media (min-width:701px){
+  .stage{width:min(100%, calc(min(50vh,46vw) * 2.15))}
+}
+/* Khung nhìn thấp: thu gọn thêm để vẫn đủ chỗ cho hàng nút */
+@media (min-width:701px) and (max-height:700px){
+  .stage{width:min(100%, calc(min(44vh,46vw) * 2.15))}
+  .wrap{padding-top:12px;padding-bottom:12px}
+  .hud{margin:8px 0}
+  .topbar{margin-bottom:10px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">🐥</div>
+      <div class="brand-text">
+        <h1>Vịt Con Vui Vẻ</h1>
+        <p>Lấy cờ rồi quay về vạch xuất phát</p>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="btnRules" type="button" aria-label="Luật chơi"><span class="ico">ℹ️</span><span class="lbl">Luật chơi</span></button>
+      <button class="btn btn-danger" id="btnReset" type="button" aria-label="Chơi lại"><span class="ico">↻</span><span class="lbl">Chơi lại</span></button>
+      <a class="btn" href="../index.html" aria-label="Về Trang Chủ"><span class="ico">🏠</span><span class="lbl">Về Trang Chủ</span></a>
+    </div>
+  </header>
+
+  <div class="stage">
+    <div class="ruler" id="ruler" aria-hidden="true"></div>
+    <div class="board" id="board">
+      <div class="fx" id="fx"></div>
+    </div>
+  </div>
+
+  <div class="hud">
+    <div class="stat">Lượt đi: <b id="statMoves">0</b></div>
+    <div class="stat">Đã rời vạch: <b id="statLeft">0/4</b></div>
+    <div class="stat energy">Tổng năng lượng: <b id="statEnergy">400</b></div>
+  </div>
+
+  <div class="panel actionbar">
+    <div class="who" id="who">Chạm vào một chú vịt để chọn</div>
+    <div class="act-grid">
+      <button class="btn act" id="actFwd" type="button" aria-label="Tiến một vạch"><span class="ico">←</span><span>Tiến</span></button>
+      <button class="btn act" id="actBack" type="button" aria-label="Lùi một vạch"><span class="ico">→</span><span>Lùi</span></button>
+      <button class="btn act" id="actUp" type="button" aria-label="Chuyền 25 năng lượng cho vịt phía trên"><span class="ico">↑</span><span>Chuyền lên</span></button>
+      <button class="btn act" id="actDown" type="button" aria-label="Chuyền 25 năng lượng cho vịt phía dưới"><span class="ico">↓</span><span>Chuyền xuống</span></button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast-host" id="toasts" aria-live="polite"></div>
+
+<div class="modal-back" id="winBack" role="dialog" aria-modal="true" aria-labelledby="winTitle">
+  <div class="modal">
+    <div class="trophy">🏆</div>
+    <h2 id="winTitle">Chúc mừng!</h2>
+    <p>Chú vịt đã mang lá cờ 🚩 về đến vạch xuất phát, và cả bốn chú vịt đều đã rời vạch ít nhất một lần.</p>
+    <p id="winStats" style="color:var(--accent);font-weight:800"></p>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="winReplay" type="button">↻ Chơi lại</button>
+      <a class="btn" href="../index.html">🏠 Về Trang Chủ</a>
+    </div>
+  </div>
+</div>
+
+<div class="modal-back" id="stuckBack" role="dialog" aria-modal="true" aria-labelledby="stuckTitle">
+  <div class="modal">
+    <div class="trophy">😵</div>
+    <h2 id="stuckTitle">Hết năng lượng rồi!</h2>
+    <p>Không chú vịt nào còn đủ 25 năng lượng để đi tiếp hay chuyền. Thử lại với cách chia năng lượng khác nhé!</p>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="stuckReplay" type="button">↻ Chơi lại</button>
+      <a class="btn" href="../index.html">🏠 Về Trang Chủ</a>
+    </div>
+  </div>
+</div>
+
+<div class="modal-back" id="rulesBack" role="dialog" aria-modal="true" aria-labelledby="rulesTitle">
+  <div class="modal">
+    <h2 id="rulesTitle">Luật chơi</h2>
+    <ol class="rules-list">
+      <li>Có <b>4 chú vịt vàng</b> ở vạch xuất phát bên phải, mỗi chú có <b>100 năng lượng</b>.</li>
+      <li>Ngoài vạch xuất phát còn <b>4 vạch</b> nữa. <b>Lá cờ đỏ</b> ở vạch thứ 4 (ngoài cùng bên trái), <b>hàng thứ 2</b> từ trên xuống.</li>
+      <li>Mỗi lần đi (tiến hoặc lùi) một vạch tốn <b>25 năng lượng</b>.</li>
+      <li>Một chú vịt có thể <b>chuyền 25 năng lượng</b> cho chú vịt ngay trên hoặc ngay dưới mình — nhưng <b>cả hai phải đứng cùng một vạch</b>.</li>
+      <li>Vịt đang có <b>đủ 100 năng lượng</b> thì không nhận chuyền được.</li>
+      <li>Chỉ chú vịt ở <b>đúng hàng của lá cờ</b> mới ngậm được cờ khi tới vạch cuối.</li>
+      <li><b>Mục tiêu:</b> đưa một chú vịt đi lấy cờ rồi quay về vạch xuất phát, và <b>mỗi chú vịt phải rời vạch xuất phát ít nhất một lần</b>.</li>
+    </ol>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="rulesClose" type="button">Đã hiểu</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ===================== Hằng số ===================== */
+  var ROWS = 4;          // 4 hàng vịt
+  var COLS = 5;          // vạch 0 (xuất phát) .. vạch 4 (có cờ)
+  var COST = 25;         // mỗi bước đi tốn 25
+  var MAX  = 100;        // trần năng lượng
+  var FLAG_ROW = 1;      // hàng thứ 2 tính từ trên xuống
+  var FLAG_COL = COLS - 1;
+  var MOVE_MS = 470;     // khớp với transition của .duck
+
+  var NAMES = ["Vịt 1", "Vịt 2", "Vịt 3", "Vịt 4"];
+
+  // Toạ độ theo % của bảng. Vạch 0 ở bên phải, vạch 4 ở bên trái.
+  function colX(c) { return 84 - c * 18.5; }
+  function rowY(r) { return 13 + r * 24; }
+
+  /* ===================== Đồ hoạ ===================== */
+  function duckSVG(withCap) {
+    var cap = withCap
+      ? '<path d="M11 17 q7 -16 27 -11 q13 4 12 14 z" fill="#e64b35"/>' +
+        '<path d="M12 20 q-13 0 -13 4.5 q0 3.5 13 2 z" fill="#c0392b"/>'
+      : '<path d="M34 9 q4 -10 11 -7 q-4 6 -3 9 z" fill="#ffd93d"/>';
+    return '' +
+      '<svg viewBox="0 0 112 84" xmlns="http://www.w3.org/2000/svg">' +
+        '<ellipse cx="58" cy="70" rx="43" ry="7" fill="#ffffff" opacity=".42"/>' +
+        '<path d="M92 40 q18 -8 19 3 q1 10 -16 10 z" fill="#f2b705"/>' +
+        '<ellipse cx="60" cy="50" rx="37" ry="22" fill="#ffd23f"/>' +
+        '<path d="M24 50 q10 -20 36 -20 q26 0 36 20 z" fill="#ffdd68" opacity=".65"/>' +
+        '<circle cx="31" cy="29" r="19.5" fill="#ffd93d"/>' +
+        cap +
+        '<path d="M15 32 q-15 2 -15 7.5 q0 5.5 15 4 z" fill="#f5822b"/>' +
+        '<path d="M15 39 q-13 1 -13 3 q0 2.5 13 1.5 z" fill="#dd6a18"/>' +
+        '<circle cx="27" cy="24" r="3.4" fill="#3a2a12"/>' +
+        '<circle cx="28.2" cy="22.8" r="1.1" fill="#ffffff"/>' +
+        '<path d="M55 47 q15 -13 30 -2 q-11 15 -30 7 z" fill="#f2b705"/>' +
+        '<path d="M58 49 q12 -8 22 -2" stroke="#e0a904" stroke-width="2" fill="none" stroke-linecap="round"/>' +
+      '</svg>';
+  }
+
+  function flagSVG() {
+    return '' +
+      '<svg viewBox="0 0 62 92" xmlns="http://www.w3.org/2000/svg">' +
+        '<ellipse cx="31" cy="84" rx="25" ry="6" fill="#ffffff" opacity=".42"/>' +
+        '<path d="M11 82 q0 -18 20 -18 q20 0 20 18 z" fill="#e64b35"/>' +
+        '<path d="M11 82 q0 -8 20 -8 q20 0 20 8 z" fill="#c0392b" opacity=".55"/>' +
+        '<rect x="29" y="10" width="4.5" height="58" rx="2.2" fill="#2f2f33"/>' +
+        '<g class="pennant">' +
+          '<path d="M33 12 q15 4 24 -2 q-7 13 0 22 q-11 5 -24 1 z" fill="#ef4b3a"/>' +
+          '<path d="M33 12 q15 4 24 -2 q-4 7 -3 10 q-11 3 -21 0 z" fill="#ff6d5c" opacity=".7"/>' +
+        '</g>' +
+      '</svg>';
+  }
+
+  function heldFlagSVG() {
+    return '' +
+      '<svg viewBox="0 0 44 62" xmlns="http://www.w3.org/2000/svg">' +
+        '<rect x="19" y="4" width="4" height="56" rx="2" fill="#2f2f33"/>' +
+        '<g class="pennant">' +
+          '<path d="M23 6 q14 4 21 -2 q-6 12 0 20 q-10 4 -21 1 z" fill="#ef4b3a"/>' +
+        '</g>' +
+      '</svg>';
+  }
+
+  /* ===================== Trạng thái ===================== */
+  var state, els = {}, ducksEl = [], busy = false;
+
+  function newState() {
+    var ducks = [];
+    for (var r = 0; r < ROWS; r++) {
+      ducks.push({ row: r, col: 0, energy: MAX, hasFlag: false, hasLeft: false });
+    }
+    return { ducks: ducks, flagTaken: false, selected: null, moves: 0, won: false };
+  }
+
+  /* ===================== Luật chơi (thuần, dễ kiểm thử) ===================== */
+  // dir: -1 = tiến (về phía cờ, col tăng), +1 = lùi (col giảm)  -> dùng step
+  function canMove(d, step) {
+    if (state.won) return { ok: false, why: "Ván chơi đã kết thúc." };
+    var t = d.col + step;
+    if (t > COLS - 1) return { ok: false, why: NAMES[d.row] + " đã ở vạch cuối rồi!" };
+    if (t < 0)        return { ok: false, why: NAMES[d.row] + " đang ở vạch xuất phát rồi!" };
+    if (d.energy < COST) return { ok: false, why: NAMES[d.row] + " không đủ 25 năng lượng để đi." };
+    return { ok: true };
+  }
+
+  function canTransfer(d, dr) {
+    if (state.won) return { ok: false, why: "Ván chơi đã kết thúc." };
+    var r = d.row + dr;
+    if (r < 0 || r > ROWS - 1) return { ok: false, why: "Không có chú vịt nào ở hướng này." };
+    var o = state.ducks[r];
+    if (o.col !== d.col) return { ok: false, why: "Phải đứng cùng một vạch mới chuyền được năng lượng." };
+    if (d.energy < COST) return { ok: false, why: NAMES[d.row] + " không đủ 25 năng lượng để chuyền." };
+    if (o.energy >= MAX) return { ok: false, why: NAMES[o.row] + " đã đầy 100 năng lượng, không nhận thêm được." };
+    return { ok: true };
+  }
+
+  function leftCount() {
+    var n = 0;
+    for (var i = 0; i < ROWS; i++) if (state.ducks[i].hasLeft) n++;
+    return n;
+  }
+
+  function totalEnergy() {
+    var t = 0;
+    for (var i = 0; i < ROWS; i++) t += state.ducks[i].energy;
+    return t;
+  }
+
+  function isStuck() {
+    for (var i = 0; i < ROWS; i++) if (state.ducks[i].energy >= COST) return false;
+    return true;
+  }
+
+  /* ===================== Dựng bảng ===================== */
+  function build() {
+    var board = els.board, ruler = els.ruler, i;
+
+    // dọn sạch (giữ lại lớp fx)
+    var keep = els.fx;
+    board.innerHTML = "";
+    board.appendChild(keep);
+    keep.innerHTML = "";
+    ruler.innerHTML = "";
+
+    // làn nước
+    for (i = 0; i < ROWS; i++) {
+      var lane = document.createElement("div");
+      lane.className = "lane" + (i % 2 ? " alt" : "");
+      lane.style.setProperty("--i", i);
+      board.insertBefore(lane, keep);
+    }
+
+    // vạch dọc + số trên thước
+    for (i = 0; i < COLS; i++) {
+      var g = document.createElement("div");
+      g.className = "gline" + (i === 0 ? " start" : "") + (i === COLS - 1 ? " finish" : "");
+      g.style.setProperty("--cx", colX(i) + "%");
+      board.insertBefore(g, keep);
+
+      var lab = document.createElement("span");
+      lab.style.setProperty("--cx", colX(i) + "%");
+      lab.textContent = String(i * 25);
+      ruler.appendChild(lab);
+    }
+
+    // phao cờ
+    els.buoy = document.createElement("div");
+    els.buoy.className = "buoy";
+    els.buoy.style.setProperty("--cx", colX(FLAG_COL) + "%");
+    els.buoy.style.setProperty("--cy", rowY(FLAG_ROW) + "%");
+    els.buoy.innerHTML = flagSVG();
+    board.insertBefore(els.buoy, keep);
+
+    // vịt
+    ducksEl = [];
+    for (i = 0; i < ROWS; i++) {
+      var b = document.createElement("button");
+      b.className = "duck";
+      b.type = "button";
+      b.dataset.row = i;
+      b.style.setProperty("--cy", rowY(i) + "%");
+      b.innerHTML =
+        '<span class="ring"></span>' +
+        '<span class="duck-art" style="--d:' + (i * 0.35) + 's">' +
+          duckSVG(i === FLAG_ROW) +
+          '<span class="held">' + heldFlagSVG() + '</span>' +
+        '</span>' +
+        '<span class="badge"><span class="val">100</span><i class="bolt">⚡</i></span>' +
+        '<span class="left-tick">✓</span>' +
+        '<span class="tag">' + NAMES[i] + '</span>';
+      b.addEventListener("click", onDuckClick);
+      board.insertBefore(b, keep);
+      ducksEl.push(b);
+    }
+  }
+
+  /* ===================== Vẽ lại ===================== */
+  function render() {
+    for (var i = 0; i < ROWS; i++) {
+      var d = state.ducks[i], el = ducksEl[i];
+      el.style.setProperty("--cx", colX(d.col) + "%");
+      el.classList.toggle("sel", state.selected === i);
+      el.classList.toggle("carry", d.hasFlag);
+      el.classList.toggle("hasleft", d.hasLeft);
+      el.classList.toggle("empty", d.energy === 0);
+      el.setAttribute("aria-label",
+        NAMES[i] + ", vạch " + d.col + ", " + d.energy + " năng lượng" +
+        (d.hasFlag ? ", đang giữ cờ" : ""));
+
+      var badge = el.querySelector(".badge");
+      var val = el.querySelector(".val");
+      if (val.textContent !== String(d.energy)) {
+        val.textContent = d.energy;
+        badge.classList.remove("bump");
+        void badge.offsetWidth;
+        badge.classList.add("bump");
+      }
+      badge.classList.toggle("low", d.energy > 0 && d.energy <= COST);
+      badge.classList.toggle("zero", d.energy === 0);
+    }
+
+    els.buoy.classList.toggle("gone", state.flagTaken);
+
+    els.statMoves.textContent = state.moves;
+    els.statLeft.textContent = leftCount() + "/" + ROWS;
+    els.statEnergy.textContent = totalEnergy();
+
+    renderActions();
+  }
+
+  function renderActions() {
+    var s = state.selected;
+    if (s === null) {
+      els.who.textContent = "Chạm vào một chú vịt để chọn";
+      setAct(els.actFwd, false); setAct(els.actBack, false);
+      setAct(els.actUp, false);  setAct(els.actDown, false);
+      return;
+    }
+    var d = state.ducks[s];
+    els.who.innerHTML = "Đang chọn: <b>" + NAMES[s] + "</b> · vạch " + d.col + " · " + d.energy + " ⚡" +
+                        (d.hasFlag ? " · 🚩" : "");
+    setAct(els.actFwd,  canMove(d, +1).ok);
+    setAct(els.actBack, canMove(d, -1).ok);
+    setAct(els.actUp,   canTransfer(d, -1).ok);
+    setAct(els.actDown, canTransfer(d, +1).ok);
+  }
+
+  function setAct(btn, on) {
+    btn.setAttribute("aria-disabled", on ? "false" : "true");
+  }
+
+  /* ===================== Hiệu ứng ===================== */
+  function toast(msg, kind) {
+    var t = document.createElement("div");
+    t.className = "toast " + (kind || "");
+    t.textContent = msg;
+    els.toasts.appendChild(t);
+    setTimeout(function () {
+      t.classList.add("out");
+      setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 320);
+    }, 2100);
+  }
+
+  function ripple(col, row) {
+    var r = document.createElement("div");
+    r.className = "ripple-fx";
+    r.style.left = colX(col) + "%";
+    r.style.top = "calc(" + rowY(row) + "% + 14px)";
+    els.fx.appendChild(r);
+    setTimeout(function () { if (r.parentNode) r.parentNode.removeChild(r); }, 800);
+  }
+
+  function flyChip(col, fromRow, toRow) {
+    var c = document.createElement("div");
+    c.className = "chip";
+    c.textContent = "25 ⚡";
+    c.style.left = colX(col) + "%";
+    c.style.top = rowY(fromRow) + "%";
+    els.fx.appendChild(c);
+    // ép trình duyệt tính layout trước khi đổi vị trí để transition chạy
+    void c.offsetWidth;
+    c.style.top = rowY(toRow) + "%";
+    setTimeout(function () { c.style.opacity = "0"; }, 380);
+    setTimeout(function () { if (c.parentNode) c.parentNode.removeChild(c); }, 950);
+  }
+
+  function sparkle(col, row) {
+    for (var i = 0; i < 10; i++) {
+      var s = document.createElement("div");
+      s.className = "spark";
+      var a = (Math.PI * 2 * i) / 10;
+      s.style.left = colX(col) + "%";
+      s.style.top = rowY(row) + "%";
+      s.style.setProperty("--dx", Math.cos(a) * 42 + "px");
+      s.style.setProperty("--dy", Math.sin(a) * 42 + "px");
+      els.fx.appendChild(s);
+      (function (node) {
+        setTimeout(function () { if (node.parentNode) node.parentNode.removeChild(node); }, 800);
+      })(s);
+    }
+  }
+
+  function confetti() {
+    var host = document.createElement("div");
+    host.className = "confetti";
+    var colors = ["#ffd23f", "#e64b35", "#2fbf71", "#4fb3e0", "#ffffff", "#ff9f1c"];
+    for (var i = 0; i < 70; i++) {
+      var p = document.createElement("div");
+      p.className = "cf";
+      p.style.left = Math.random() * 100 + "%";
+      p.style.background = colors[i % colors.length];
+      p.style.animationDuration = (2.2 + Math.random() * 1.8) + "s";
+      p.style.animationDelay = (Math.random() * 0.7) + "s";
+      host.appendChild(p);
+    }
+    document.body.appendChild(host);
+    setTimeout(function () { if (host.parentNode) host.parentNode.removeChild(host); }, 5200);
+  }
+
+  /* ===================== Hành động ===================== */
+  function onDuckClick(e) {
+    if (busy) return;
+    var row = Number(e.currentTarget.dataset.row);
+    state.selected = (state.selected === row) ? null : row;
+    render();
+  }
+
+  function tryMove(step) {
+    if (busy || state.selected === null) return;
+    var d = state.ducks[state.selected];
+    var v = canMove(d, step);
+    if (!v.ok) { toast(v.why, "bad"); return; }
+
+    busy = true;
+    d.energy -= COST;
+    d.col += step;
+    if (d.col >= 1) d.hasLeft = true;
+    state.moves++;
+
+    ducksEl[d.row].classList.add("moving");
+    ripple(d.col - step, d.row);
+    render();
+
+    setTimeout(function () {
+      ducksEl[d.row].classList.remove("moving");
+      ripple(d.col, d.row);
+
+      // ngậm cờ
+      if (!state.flagTaken && d.col === FLAG_COL && d.row === FLAG_ROW) {
+        state.flagTaken = true;
+        d.hasFlag = true;
+        sparkle(FLAG_COL, FLAG_ROW);
+        toast("Ngậm được lá cờ rồi! 🚩 Giờ quay về vạch xuất phát nhé.", "good");
+        render();
+      }
+
+      busy = false;
+      afterAction(d);
+    }, MOVE_MS);
+  }
+
+  function tryTransfer(dr) {
+    if (busy || state.selected === null) return;
+    var d = state.ducks[state.selected];
+    var v = canTransfer(d, dr);
+    if (!v.ok) { toast(v.why, "bad"); return; }
+
+    var o = state.ducks[d.row + dr];
+    busy = true;
+    d.energy -= COST;
+    o.energy += COST;
+    flyChip(d.col, d.row, o.row);
+    render();
+
+    setTimeout(function () {
+      busy = false;
+      afterAction(d);
+    }, 520);
+  }
+
+  function carrier() {
+    for (var i = 0; i < ROWS; i++) if (state.ducks[i].hasFlag) return state.ducks[i];
+    return null;
+  }
+
+  function afterAction(d) {
+    // Thắng? Phải xét chú vịt đang giữ cờ, không chỉ chú vừa hành động —
+    // người chơi có thể mang cờ về trước rồi mới cho chú cuối rời vạch.
+    var c = carrier();
+    if (!state.won && c && c.col === 0) {
+      if (leftCount() === ROWS) {
+        state.won = true;
+        state.selected = null;
+        render();
+        confetti();
+        els.winStats.textContent = "Hoàn thành trong " + state.moves + " lượt đi · còn " + totalEnergy() + " ⚡";
+        openModal(els.winBack);
+        return;
+      }
+      if (d === c) toast("Đã về tới nơi, nhưng vẫn còn vịt chưa rời vạch xuất phát!", "bad");
+    }
+    if (!state.won && isStuck()) {
+      state.selected = null;
+      render();
+      openModal(els.stuckBack);
+    }
+  }
+
+  /* ===================== Modal ===================== */
+  function openModal(m) { m.classList.add("show"); }
+  function closeModal(m) { m.classList.remove("show"); }
+
+  function reset() {
+    state = newState();
+    busy = false;
+    closeModal(els.winBack);
+    closeModal(els.stuckBack);
+    build();
+    render();
+    toast("Ván mới bắt đầu! 🐥", "good");
+  }
+
+  /* ===================== Khởi động ===================== */
+  function init() {
+    ["board", "ruler", "fx", "toasts", "who",
+     "statMoves", "statLeft", "statEnergy",
+     "actFwd", "actBack", "actUp", "actDown",
+     "btnReset", "btnRules", "winBack", "stuckBack", "rulesBack",
+     "winReplay", "stuckReplay", "rulesClose", "winStats"].forEach(function (id) {
+      els[id] = document.getElementById(id);
+    });
+
+    els.actFwd.addEventListener("click", function () { tryMove(+1); });
+    els.actBack.addEventListener("click", function () { tryMove(-1); });
+    els.actUp.addEventListener("click", function () { tryTransfer(-1); });
+    els.actDown.addEventListener("click", function () { tryTransfer(+1); });
+
+    els.btnReset.addEventListener("click", reset);
+    els.winReplay.addEventListener("click", reset);
+    els.stuckReplay.addEventListener("click", reset);
+    els.btnRules.addEventListener("click", function () { openModal(els.rulesBack); });
+    els.rulesClose.addEventListener("click", function () { closeModal(els.rulesBack); });
+    els.rulesBack.addEventListener("click", function (e) {
+      if (e.target === els.rulesBack) closeModal(els.rulesBack);
+    });
+
+    // phím tắt trên máy tính
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { closeModal(els.rulesBack); return; }
+      if (state.selected === null) {
+        if (e.key >= "1" && e.key <= "4") { state.selected = Number(e.key) - 1; render(); }
+        return;
+      }
+      if (e.key === "ArrowLeft")  { e.preventDefault(); tryMove(+1); }
+      else if (e.key === "ArrowRight") { e.preventDefault(); tryMove(-1); }
+      else if (e.key === "ArrowUp")    { e.preventDefault(); tryTransfer(-1); }
+      else if (e.key === "ArrowDown")  { e.preventDefault(); tryTransfer(+1); }
+      else if (e.key >= "1" && e.key <= "4") { state.selected = Number(e.key) - 1; render(); }
+    });
+
+    state = newState();
+    build();
+    render();
+
+    // cho phép kiểm thử tự động
+    window.__game = {
+      get state() { return state; },
+      get busy() { return busy; },
+      select: function (r) { state.selected = r; render(); },
+      move: tryMove,
+      transfer: tryTransfer,
+      reset: reset,
+      canMove: canMove,
+      canTransfer: canTransfer
+    };
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
+</script>
+</body>
+</html>

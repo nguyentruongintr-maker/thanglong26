@@ -1,0 +1,917 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mảnh Ghép Vô Cực — Thăng Long 26</title>
+<meta name="description" content="Trò chơi ghép hình 9 mảnh gốm nung: xoay, lật và ghép các mảnh về đúng khung.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%A9%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/shell.css">
+<style>
+/* ===================== Sân chơi ===================== */
+.stage{
+  position:relative;
+  width:100%;
+  border-radius:22px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.16);
+  box-shadow:var(--shadow), inset 0 0 70px rgba(3,25,45,.5);
+  background:
+    radial-gradient(70% 60% at 50% 18%, #3b4a5e 0%, #26313f 55%, #1a222c 100%);
+  touch-action:none;
+}
+#scene{
+  display:block;
+  width:100%;
+  height:auto;
+  touch-action:none;
+  -webkit-user-select:none;
+  user-select:none;
+  cursor:default;
+}
+
+/* mảnh ghép */
+.piece{cursor:grab}
+.piece.dragging{cursor:grabbing}
+.piece.placed{cursor:default}
+.piece .face{
+  fill:url(#clay);
+  stroke:#5e2c17;
+  stroke-width:1.6;
+  stroke-linejoin:round;
+}
+.piece .side{ fill:#6b3018; transition:transform .24s cubic-bezier(.3,1.1,.4,1); }
+/* Mảnh đã nằm trong khung thì phẳng liền với nhau, không còn bóng đổ riêng */
+.piece.placed .side{ display:none; }
+.piece.placed .face{ stroke:#7b4527; stroke-width:1.2; }
+.piece .gloss{ fill:none; stroke:rgba(255,236,214,.30); stroke-width:1.5; }
+.piece .art{ transition:transform .24s cubic-bezier(.3,1.1,.4,1); }
+.piece.sel .face{ stroke:#ffd23f; stroke-width:3; }
+.piece .bad{
+  fill:none;
+  stroke:#ff3b2f;
+  stroke-width:5;
+  stroke-linecap:round;
+  opacity:0;
+  pointer-events:none;
+}
+.piece.warn .bad.on{ opacity:1; animation:badpulse .5s ease-in-out infinite alternate; }
+@keyframes badpulse{from{opacity:.55}to{opacity:1}}
+.piece.snapping .art{ transition:transform .24s cubic-bezier(.3,1.1,.4,1); }
+
+/* khung bàn */
+.plate{ fill:url(#wood); stroke:#241812; stroke-width:2; }
+.plateSide{ fill:#1d130e; }
+.recess{ fill:#241811; }
+.recessEdge{ fill:none; stroke:#120b07; stroke-width:3; }
+.recessLip{ fill:none; stroke:rgba(255,220,190,.14); stroke-width:2; }
+
+/* ===================== HUD ===================== */
+.hud{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  margin:12px 0 10px; font-size:13px; font-weight:800;
+}
+.hud .stat{
+  background:var(--glass); border:1px solid var(--glass-line);
+  border-radius:12px; padding:8px 12px; color:var(--paper);
+  flex:1 1 auto; text-align:center;
+}
+.hud .stat b{color:var(--accent)}
+.hud .stat.time b{font-variant-numeric:tabular-nums; letter-spacing:.5px}
+
+.actionbar{ padding:12px; display:flex; flex-direction:column; gap:10px; }
+.actionbar .who{
+  font-size:13px; font-weight:800; color:var(--muted);
+  text-align:center; min-height:18px;
+}
+.actionbar .who b{color:var(--accent)}
+.act-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.act{
+  flex-direction:column; gap:3px; min-height:58px;
+  padding:8px 6px; font-size:12px; text-align:center; line-height:1.15;
+}
+.act .ico{ font-size:19px; line-height:1 }
+
+.help-list{ text-align:left; margin:14px 0 0; padding-left:20px; color:#d5e9f7; font-size:14px; line-height:1.75 }
+.help-list li{ margin-bottom:6px }
+.help-list b{ color:var(--accent) }
+
+.trophy{ font-size:52px; line-height:1; animation:pop .6s cubic-bezier(.3,1.5,.5,1) both }
+@keyframes pop{from{transform:scale(.3) rotate(-20deg);opacity:0}to{transform:none;opacity:1}}
+.confetti{position:fixed;inset:0;pointer-events:none;z-index:85;overflow:hidden}
+.cf{position:absolute;width:9px;height:14px;border-radius:2px;animation:fall linear forwards}
+@keyframes fall{0%{transform:translateY(-30px) rotate(0);opacity:1}100%{transform:translateY(105vh) rotate(720deg);opacity:.9}}
+
+.hud .k-short{display:none}
+
+@media (max-width:700px){
+  .topbar .lbl{display:none}
+  .topbar .btn{padding:0 13px}
+  .brand-text p{display:none}
+  .hud .stat{padding:7px 8px;font-size:12px}
+  .hud .k-long{display:none}
+  .hud .k-short{display:inline}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">🧩</div>
+      <div class="brand-text">
+        <h1>Mảnh Ghép Vô Cực</h1>
+        <p>Ghép 9 mảnh gốm về đúng khung</p>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="btnHelp" type="button" aria-label="Hướng dẫn"><span class="ico">ℹ️</span><span class="lbl">Hướng dẫn</span></button>
+      <button class="btn btn-danger" id="btnReset" type="button" aria-label="Chơi lại"><span class="ico">↻</span><span class="lbl">Chơi lại</span></button>
+      <a class="btn" href="../index.html" aria-label="Về Trang Chủ"><span class="ico">🏠</span><span class="lbl">Về Trang Chủ</span></a>
+    </div>
+  </header>
+
+  <div class="stage">
+    <svg id="scene" xmlns="http://www.w3.org/2000/svg" role="application" aria-label="Bàn ghép hình"></svg>
+  </div>
+
+  <div class="hud">
+    <div class="stat time"><span class="k-long">Thời gian</span><span class="k-short">TG</span>: <b id="statTime">00:00</b></div>
+    <div class="stat"><span class="k-long">Đã ghép</span><span class="k-short">Ghép</span>: <b id="statDone">0/9</b></div>
+  </div>
+
+  <div class="panel actionbar">
+    <div class="who" id="who">Chạm vào một mảnh ghép để chọn</div>
+    <div class="act-grid">
+      <button class="btn act" id="actLeft"  type="button" aria-label="Quay trái 90 độ"><span class="ico">↺</span><span>Quay trái</span></button>
+      <button class="btn act" id="actFlip"  type="button" aria-label="Lật mảnh ghép"><span class="ico">⇋</span><span>Lật mặt</span></button>
+      <button class="btn act" id="actRight" type="button" aria-label="Quay phải 90 độ"><span class="ico">↻</span><span>Quay phải</span></button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast-host" id="toasts" aria-live="polite"></div>
+
+<!-- Thắng -->
+<div class="modal-back" id="winBack" role="dialog" aria-modal="true" aria-labelledby="winTitle">
+  <div class="modal">
+    <div class="trophy">🏆</div>
+    <h2 id="winTitle">Hoàn thành!</h2>
+    <p>Cả 9 mảnh ghép đã về đúng vị trí trong khung.</p>
+    <p id="winStats" style="color:var(--accent);font-weight:800"></p>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="winReplay" type="button">↻ Chơi lại</button>
+      <a class="btn" href="../index.html">🏠 Về Trang Chủ</a>
+    </div>
+  </div>
+</div>
+
+<!-- Hướng dẫn -->
+<div class="modal-back" id="helpBack" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+  <div class="modal">
+    <h2 id="helpTitle">Hướng dẫn</h2>
+    <ol class="help-list">
+      <li><b>Kéo</b> mảnh ghép để di chuyển. Thả gần ô trống vừa khít thì mảnh sẽ <b>tự hút</b> vào.</li>
+      <li><b>Chạm 1 lần</b> vào mảnh ghép: quay <b>phải</b> 90°.</li>
+      <li><b>Chạm 2 lần liên tiếp</b>: quay <b>trái</b> 90°.</li>
+      <li><b>Ấn giữ</b>: <b>lật</b> mảnh ghép sang mặt sau.</li>
+      <li>Hoặc dùng ba nút <b>Quay trái · Lật mặt · Quay phải</b> ở dưới cho chắc.</li>
+      <li>Đặt sai thì các cạnh không khớp <b>hiện màu đỏ</b> và mảnh không bị hút vào.</li>
+      <li>Chỉ có thể dựa vào <b>hình dạng đường viền</b> để ghép — các mảnh giống hệt nhau về màu.</li>
+    </ol>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="helpClose" type="button">Đã hiểu</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ==================================================================
+     1. HÌNH HỌC — dựng 9 mảnh ghép từ sơ đồ
+     ================================================================== */
+
+  var S = 150;                 // cạnh một ô
+  var GRID = 3;
+  var BOARD = GRID * S;        // 450
+  var RIM = 60;                // bề rộng viền khung
+  var FRAME = BOARD + 2 * RIM; // 570
+
+  // --- bộ dựng cạnh: toạ độ chuẩn hoá, đi từ (0,0) tới (1,0),
+  //     y dương = nhô về phía pháp tuyến của cạnh ---
+  function EB() { this.p = [0, 0]; this.segs = []; }
+  EB.prototype.L = function (x, y) {
+    var px = this.p[0], py = this.p[1];
+    this.segs.push([px + (x - px) / 3, py + (y - py) / 3,
+                    px + 2 * (x - px) / 3, py + 2 * (y - py) / 3, x, y]);
+    this.p = [x, y]; return this;
+  };
+  EB.prototype.C = function (a, b, c, d, x, y) {
+    this.segs.push([a, b, c, d, x, y]); this.p = [x, y]; return this;
+  };
+
+  // bướu tròn kiểu jigsaw
+  function eKnob(dir, pos, w) {
+    var h = 0.22 * dir, a = pos - w / 2, z = pos + w / 2, b = new EB();
+    b.L(a, 0);
+    b.C(a + w * 0.12, 0,        a - w * 0.06, h * 0.72, a + w * 0.24, h * 0.80);
+    b.C(a + w * 0.44, h * 0.92, a + w * 0.56, h * 0.92, a + w * 0.76, h * 0.80);
+    b.C(z + w * 0.06, h * 0.72, z - w * 0.12, 0,        z, 0);
+    b.L(1, 0);
+    return b.segs;
+  }
+  // sóng chữ S
+  function eWave(dir, pos, w) {
+    var h = 0.16 * dir, a = pos - w / 2, z = pos + w / 2, b = new EB();
+    b.L(a, 0);
+    b.C(a + w * 0.16, 0,       a + w * 0.10, h,      a + w * 0.32, h);
+    b.C(a + w * 0.50, h,       a + w * 0.50, -h,     a + w * 0.68, -h);
+    b.C(a + w * 0.90, -h,      z - w * 0.16, 0,      z, 0);
+    b.L(1, 0);
+    return b.segs;
+  }
+  // bậc chữ nhật
+  function eStep(dir, pos, w) {
+    var h = 0.17 * dir, a = pos - w / 2, z = pos + w / 2, b = new EB();
+    b.L(a, 0); b.L(a, h); b.L(z, h); b.L(z, 0); b.L(1, 0);
+    return b.segs;
+  }
+  // chữ V
+  function eZig(dir, pos, w) {
+    var h = 0.20 * dir, a = pos - w / 2, z = pos + w / 2, b = new EB();
+    b.L(a, 0); b.L(pos, h); b.L(z, 0); b.L(1, 0);
+    return b.segs;
+  }
+  // hai chữ V liền
+  function eZig2(dir, pos, w) {
+    var h = 0.15 * dir, a = pos - w / 2, z = pos + w / 2, q = w / 4, b = new EB();
+    b.L(a, 0); b.L(a + q, h); b.L(pos, 0); b.L(pos + q, h); b.L(z, 0); b.L(1, 0);
+    return b.segs;
+  }
+
+  // --- bảng 24 cạnh, đọc theo sơ đồ ---
+  // H[hàng biên 0..3][cột 0..2] : cạnh ngang, hướng chuẩn trái -> phải, pháp tuyến hướng LÊN
+  var H = [
+    [ eKnob(+1, 0.60, 0.34), eKnob(-1, 0.46, 0.32), eStep(+1, 0.60, 0.30) ],
+    [ eKnob(+1, 0.52, 0.32), eZig (+1, 0.52, 0.46), eZig (+1, 0.60, 0.42) ],
+    [ eKnob(+1, 0.44, 0.30), eKnob(+1, 0.56, 0.32), eKnob(+1, 0.42, 0.34) ],
+    [ eZig2(-1, 0.40, 0.44), eKnob(-1, 0.50, 0.36), eStep(-1, 0.58, 0.28) ]
+  ];
+  // V[hàng 0..2][cột biên 0..3] : cạnh dọc, hướng chuẩn trên -> dưới, pháp tuyến hướng PHẢI
+  var V = [
+    [ eStep(-1, 0.34, 0.28), eStep(+1, 0.30, 0.30), eWave(+1, 0.44, 0.46), eWave(+1, 0.46, 0.48) ],
+    [ eZig (-1, 0.52, 0.42), eStep(-1, 0.62, 0.26), eWave(+1, 0.54, 0.42), eWave(-1, 0.52, 0.44) ],
+    [ eKnob(-1, 0.58, 0.32), eStep(+1, 0.44, 0.34), eWave(-1, 0.48, 0.44), eZig (+1, 0.48, 0.40) ]
+  ];
+
+  // --- khung chiếu từ toạ độ chuẩn hoá sang toạ độ bàn ---
+  function frame(ax, ay, bx, by) {
+    var dx = bx - ax, dy = by - ay, len = Math.sqrt(dx * dx + dy * dy);
+    var ux = dx / len, uy = dy / len, nx = uy, ny = -ux;
+    return function (x, y) {
+      return [ax + ux * x * len + nx * y * len, ay + uy * x * len + ny * y * len];
+    };
+  }
+  function num(p) { return (Math.round(p[0] * 100) / 100) + ' ' + (Math.round(p[1] * 100) / 100); }
+
+  function anchors(segs) {
+    var pts = [[0, 0]];
+    for (var i = 0; i < segs.length; i++) pts.push([segs[i][4], segs[i][5]]);
+    return pts;
+  }
+  // nối một cạnh vào mảng lệnh path; reversed = đi ngược từ (1,0) về (0,0)
+  function emit(segs, F, reversed, out) {
+    var i, s, pts;
+    if (!reversed) {
+      for (i = 0; i < segs.length; i++) {
+        s = segs[i];
+        out.push('C' + num(F(s[0], s[1])) + ' ' + num(F(s[2], s[3])) + ' ' + num(F(s[4], s[5])));
+      }
+    } else {
+      pts = anchors(segs);
+      for (i = segs.length - 1; i >= 0; i--) {
+        s = segs[i];
+        out.push('C' + num(F(s[2], s[3])) + ' ' + num(F(s[0], s[1])) + ' ' + num(F(pts[i][0], pts[i][1])));
+      }
+    }
+  }
+  function startOf(F, reversed) { return F(reversed ? 1 : 0, 0); }
+
+  // --- khung chuẩn của từng cạnh quanh ô (r,c), gốc toạ độ đặt tại tâm ô ---
+  function cellFrames(r, c, ox, oy) {
+    var x0 = c * S - ox, y0 = r * S - oy, x1 = (c + 1) * S - ox, y1 = (r + 1) * S - oy;
+    return {
+      top:    frame(x0, y0, x1, y0),   // ngang, trái->phải
+      right:  frame(x1, y0, x1, y1),   // dọc, trên->dưới
+      bottom: frame(x0, y1, x1, y1),   // ngang, trái->phải (đi ngược khi vẽ)
+      left:   frame(x0, y0, x0, y1)    // dọc, trên->dưới (đi ngược khi vẽ)
+    };
+  }
+
+  // Mỗi mảnh: 4 cạnh theo thứ tự trên, phải, dưới, trái
+  function pieceGeom(r, c) {
+    var ox = c * S + S / 2, oy = r * S + S / 2;
+    var F = cellFrames(r, c, ox, oy);
+    var spec = [
+      { segs: H[r][c],     F: F.top,    rev: false },
+      { segs: V[r][c + 1], F: F.right,  rev: false },
+      { segs: H[r + 1][c], F: F.bottom, rev: true  },
+      { segs: V[r][c],     F: F.left,   rev: true  }
+    ];
+    var out = ['M' + num(startOf(spec[0].F, spec[0].rev))];
+    var sides = [];
+    for (var i = 0; i < 4; i++) {
+      var sub = ['M' + num(startOf(spec[i].F, spec[i].rev))];
+      emit(spec[i].segs, spec[i].F, spec[i].rev, sub);
+      sides.push(sub.join(' '));
+      emit(spec[i].segs, spec[i].F, spec[i].rev, out);
+    }
+    out.push('Z');
+    return { d: out.join(' '), sides: sides };
+  }
+
+  // --- đường bao ngoài của cả 9 mảnh = lỗ khoét trên khung bàn ---
+  function silhouette(ox, oy) {
+    var out = [], c, r, F;
+    F = frame(0 - ox, 0 - oy, S - ox, 0 - oy);
+    out.push('M' + num(startOf(F, false)));
+    for (c = 0; c < GRID; c++) {
+      F = frame(c * S - ox, 0 - oy, (c + 1) * S - ox, 0 - oy);
+      emit(H[0][c], F, false, out);
+    }
+    for (r = 0; r < GRID; r++) {
+      F = frame(BOARD - ox, r * S - oy, BOARD - ox, (r + 1) * S - oy);
+      emit(V[r][GRID], F, false, out);
+    }
+    for (c = GRID - 1; c >= 0; c--) {
+      F = frame(c * S - ox, BOARD - oy, (c + 1) * S - ox, BOARD - oy);
+      emit(H[GRID][c], F, true, out);
+    }
+    for (r = GRID - 1; r >= 0; r--) {
+      F = frame(0 - ox, r * S - oy, 0 - ox, (r + 1) * S - oy);
+      emit(V[r][0], F, true, out);
+    }
+    out.push('Z');
+    return out.join(' ');
+  }
+
+  /* ==================================================================
+     2. BỐ CỤC SÂN CHƠI
+     ================================================================== */
+
+  var PSLOT = 214;             // ô chứa một mảnh ở khay
+  var LAYOUTS = {
+    wide: function () {
+      var trayW = 2 * PSLOT, gap = 26;
+      var W = trayW + gap + FRAME + gap + trayW + 2 * 20;
+      var H_ = Math.max(3 * PSLOT, FRAME) + 40;
+      var bx = 20 + trayW + gap, by = (H_ - FRAME) / 2;
+      return { W: W, H: H_, boardX: bx + RIM, boardY: by + RIM, frameX: bx, frameY: by,
+               trayCols: 2, leftX: 20, rightX: bx + FRAME + gap, trayW: trayW, trayTop: (H_ - 3 * PSLOT) / 2 };
+    },
+    tall: function () {
+      var trayW = PSLOT, gap = 20;
+      var W = trayW + gap + FRAME + gap + trayW + 2 * 14;
+      var rows = 5, step = 196;
+      var trayH = (rows - 1) * step + PSLOT;
+      var H_ = Math.max(trayH, FRAME) + 30;
+      var bx = 14 + trayW + gap, by = (H_ - FRAME) / 2;
+      return { W: W, H: H_, boardX: bx + RIM, boardY: by + RIM, frameX: bx, frameY: by,
+               trayCols: 1, leftX: 14, rightX: bx + FRAME + gap, trayW: trayW,
+               trayTop: (H_ - trayH) / 2, trayStep: step };
+    }
+  };
+
+  function pickLayout() {
+    var w = window.innerWidth || 1024;
+    return w >= 900 ? LAYOUTS.wide() : LAYOUTS.tall();
+  }
+
+  // vị trí khay cho mảnh thứ i (0..8): 5 bên trái, 4 bên phải
+  function traySpot(L, i) {
+    var left = i < 5, k = left ? i : i - 5;
+    var baseX = left ? L.leftX : L.rightX;
+    if (L.trayCols === 2) {
+      var col = k % 2, row = (k / 2) | 0;
+      return { x: baseX + col * PSLOT + PSLOT / 2, y: L.trayTop + row * PSLOT + PSLOT / 2 };
+    }
+    var step = L.trayStep;
+    return { x: baseX + PSLOT / 2, y: L.trayTop + k * step + PSLOT / 2 };
+  }
+
+  /* ==================================================================
+     3. TRẠNG THÁI
+     ================================================================== */
+
+  var SNAP = 62;               // bán kính hút (đơn vị bàn)
+  var svg, layers = {}, els = {};
+  var L, pieces = [], selected = null, drag = null;
+  var timer = { t0: 0, elapsed: 0, running: false, id: null };
+  var won = false;
+
+  function makeSVG(tag, attrs) {
+    var e = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    if (attrs) for (var k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+
+  function buildScene() {
+    L = pickLayout();
+    svg.setAttribute('viewBox', '0 0 ' + L.W + ' ' + L.H);
+    svg.innerHTML = '';
+
+    // --- defs: màu gốm nung, cố định theo màn hình nên xoay mảnh không đổi sắc ---
+    var defs = makeSVG('defs');
+    defs.innerHTML =
+      '<linearGradient id="clay" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="' + L.H + '">' +
+        '<stop offset="0" stop-color="#c4703f"/>' +
+        '<stop offset="0.55" stop-color="#b05c33"/>' +
+        '<stop offset="1" stop-color="#9c4b28"/>' +
+      '</linearGradient>' +
+      '<linearGradient id="wood" gradientUnits="userSpaceOnUse" x1="0" y1="' + L.frameY + '" x2="0" y2="' + (L.frameY + FRAME) + '">' +
+        '<stop offset="0" stop-color="#4d3a2c"/>' +
+        '<stop offset="1" stop-color="#33261d"/>' +
+      '</linearGradient>' +
+      '<filter id="pcShadow" x="-30%" y="-30%" width="160%" height="170%">' +
+        '<feDropShadow dx="0" dy="7" stdDeviation="7" flood-color="#0b0805" flood-opacity="0.5"/>' +
+      '</filter>' +
+      '<filter id="frShadow" x="-20%" y="-20%" width="140%" height="150%">' +
+        '<feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#070a0f" flood-opacity="0.62"/>' +
+      '</filter>';
+    svg.appendChild(defs);
+
+    // --- khung bàn ---
+    var gBoard = makeSVG('g', { filter: 'url(#frShadow)' });
+    var sil = silhouette(0, 0);
+    var plateD =
+      'M' + L.frameX + ' ' + (L.frameY + 18) +
+      ' q0 -18 18 -18 h' + (FRAME - 36) + ' q18 0 18 18' +
+      ' v' + (FRAME - 36) + ' q0 18 -18 18 h-' + (FRAME - 36) + ' q-18 0 -18 -18 Z';
+
+    // bề dày khung (khối đùn xuống dưới)
+    gBoard.appendChild(makeSVG('path', { d: plateD, class: 'plateSide', transform: 'translate(0,10)' }));
+    // lòng khung (phần lõm)
+    var gRec = makeSVG('g', { transform: 'translate(' + (L.boardX) + ',' + (L.boardY) + ')' });
+    gRec.appendChild(makeSVG('path', { d: sil, class: 'recess' }));
+    gBoard.appendChild(gRec);
+    // mặt khung có lỗ khoét
+    var plate = makeSVG('path', {
+      d: plateD + ' ' + translatePath(sil, L.boardX, L.boardY),
+      class: 'plate', 'fill-rule': 'evenodd'
+    });
+    gBoard.appendChild(plate);
+    // viền lỗ tạo chiều sâu
+    var gLip = makeSVG('g', { transform: 'translate(' + L.boardX + ',' + L.boardY + ')' });
+    gLip.appendChild(makeSVG('path', { d: sil, class: 'recessEdge' }));
+    var lip = makeSVG('path', { d: sil, class: 'recessLip', transform: 'translate(0,-2.5)' });
+    gLip.appendChild(lip);
+    gBoard.appendChild(gLip);
+    svg.appendChild(gBoard);
+
+    layers.pieces = makeSVG('g');
+    svg.appendChild(layers.pieces);
+
+    layers.top = makeSVG('g');
+    svg.appendChild(layers.top);
+  }
+
+  // dịch một path (chỉ gồm M/C/Z tuyệt đối) đi (dx,dy)
+  function translatePath(d, dx, dy) {
+    return d.replace(/(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)/g, function (m, a, b) {
+      return (parseFloat(a) + dx) + ' ' + (parseFloat(b) + dy);
+    });
+  }
+
+  /* ==================================================================
+     4. MẢNH GHÉP
+     ================================================================== */
+
+  function buildPieces() {
+    pieces = [];
+    layers.pieces.innerHTML = '';
+    layers.top.innerHTML = '';
+    for (var r = 0; r < GRID; r++) {
+      for (var c = 0; c < GRID; c++) {
+        var geom = pieceGeom(r, c);
+        var g = makeSVG('g', { class: 'piece', filter: 'url(#pcShadow)' });
+
+        var gSideWrap = makeSVG('g', { transform: 'translate(0,8)' });
+        var sidePath = makeSVG('path', { d: geom.d, class: 'side' });
+        gSideWrap.appendChild(sidePath);
+        g.appendChild(gSideWrap);
+
+        var art = makeSVG('g', { class: 'art' });
+        art.appendChild(makeSVG('path', { d: geom.d, class: 'face' }));
+        var bads = [];
+        for (var j = 0; j < 4; j++) {
+          var bp = makeSVG('path', { d: geom.sides[j], class: 'bad' });
+          art.appendChild(bp); bads.push(bp);
+        }
+        g.appendChild(art);
+
+        var p = {
+          id: r * GRID + c, row: r, col: c,
+          g: g, art: art, side: sidePath, sideWrap: gSideWrap, bads: bads,
+          rot: 0, flip: false, placed: false, x: 0, y: 0
+        };
+        g.__piece = p;
+        pieces.push(p);
+        layers.pieces.appendChild(g);
+        attachHandlers(p);
+      }
+    }
+  }
+
+  function applyArt(p) {
+    var t = 'rotate(' + (p.rot * 90) + ') scale(' + (p.flip ? -1 : 1) + ',1)';
+    p.art.setAttribute('transform', t);
+    p.side.setAttribute('transform', t);
+  }
+  function applySeat(p) {
+    p.g.classList.toggle('placed', p.placed);
+    p.g.setAttribute('filter', p.placed ? 'none' : 'url(#pcShadow)');
+  }
+  function applyPos(p) {
+    p.g.setAttribute('transform', 'translate(' + p.x + ',' + p.y + ')');
+  }
+
+  function slotPos(id) {
+    var r = (id / GRID) | 0, c = id % GRID;
+    return { x: L.boardX + c * S + S / 2, y: L.boardY + r * S + S / 2 };
+  }
+
+  /* ==================================================================
+     5. LUẬT KHỚP
+     ================================================================== */
+
+  // Sau khi lật rồi xoay, cạnh đang nằm ở phía j của mảnh là cạnh gốc nào?
+  // lật ngang: trên->trên, phải<->trái, dưới->dưới
+  var MIRROR = [0, 3, 2, 1];
+  function baseSideAt(p, j) {
+    var k = ((j - p.rot) % 4 + 4) % 4;
+    return p.flip ? MIRROR[k] : k;
+  }
+  // Mảnh p đặt vào ô slotId: cạnh phía j có khớp không?
+  function sideOk(p, slotId, j) {
+    return p.id === slotId && !p.flip && baseSideAt(p, j) === j;
+  }
+  function fits(p, slotId) {
+    return p.id === slotId && p.rot === 0 && !p.flip;
+  }
+
+  function emptySlots() {
+    var used = {}, i;
+    for (i = 0; i < pieces.length; i++) if (pieces[i].placed) used[pieces[i].id] = true;
+    var out = [];
+    for (i = 0; i < 9; i++) if (!used[i]) out.push(i);
+    return out;
+  }
+
+  // ô trống gần nhất trong bán kính hút
+  function nearestSlot(p) {
+    var free = emptySlots(), best = null, bestD = SNAP;
+    for (var i = 0; i < free.length; i++) {
+      var s = slotPos(free[i]);
+      var d = Math.sqrt((s.x - p.x) * (s.x - p.x) + (s.y - p.y) * (s.y - p.y));
+      if (d < bestD) { bestD = d; best = free[i]; }
+    }
+    return best;
+  }
+
+  function clearWarn(p) {
+    p.g.classList.remove('warn');
+    for (var j = 0; j < 4; j++) p.bads[j].classList.remove('on');
+  }
+  function showWarn(p, slotId) {
+    var any = false;
+    for (var j = 0; j < 4; j++) {
+      var bad = !sideOk(p, slotId, j);
+      p.bads[j].classList.toggle('on', bad);
+      if (bad) any = true;
+    }
+    p.g.classList.toggle('warn', any);
+  }
+
+  /* ==================================================================
+     6. THAO TÁC
+     ================================================================== */
+
+  function select(p) {
+    selected = p;
+    for (var i = 0; i < pieces.length; i++) pieces[i].g.classList.toggle('sel', pieces[i] === p);
+    renderHud();
+  }
+
+  function rotate(p, dir) {          // dir=+1 phải, -1 trái
+    if (!p || p.placed || won) return;
+    p.rot = ((p.rot + dir) % 4 + 4) % 4;
+    applyArt(p);
+    refreshWarn(p);
+  }
+  function flip(p) {
+    if (!p || p.placed || won) return;
+    p.flip = !p.flip;
+    applyArt(p);
+    refreshWarn(p);
+  }
+  function refreshWarn(p) {
+    var slot = nearestSlot(p);
+    if (slot === null) { clearWarn(p); return; }
+    if (fits(p, slot)) { clearWarn(p); } else { showWarn(p, slot); }
+  }
+
+  function toScene(evt) {
+    var pt = svg.createSVGPoint();
+    pt.x = evt.clientX; pt.y = evt.clientY;
+    var m = svg.getScreenCTM();
+    if (!m) return { x: 0, y: 0 };
+    var q = pt.matrixTransform(m.inverse());
+    return { x: q.x, y: q.y };
+  }
+
+  function bringToTop(p) { layers.top.appendChild(p.g); }
+  function sendBack(p) { layers.pieces.appendChild(p.g); }
+
+  function attachHandlers(p) {
+    p.g.addEventListener('pointerdown', function (e) {
+      if (won) return;
+      e.preventDefault();
+      startTimer();
+      select(p);
+      var s = toScene(e);
+      drag = {
+        p: p, id: e.pointerId,
+        offX: p.x - s.x, offY: p.y - s.y,
+        sx: e.clientX, sy: e.clientY,
+        moved: false, longFired: false
+      };
+      try { p.g.setPointerCapture(e.pointerId); } catch (err) {}
+      drag.lp = setTimeout(function () {
+        if (drag && !drag.moved) { drag.longFired = true; flip(p); }
+      }, 480);
+    });
+
+    p.g.addEventListener('pointermove', function (e) {
+      if (!drag || drag.p !== p || e.pointerId !== drag.id) return;
+      var dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+      if (!drag.moved && Math.sqrt(dx * dx + dy * dy) > 6) {
+        drag.moved = true;
+        clearTimeout(drag.lp);
+        if (p.placed) { p.placed = false; applySeat(p); renderHud(); }
+        p.g.classList.add('dragging');
+        bringToTop(p);
+      }
+      if (!drag.moved) return;
+      var s = toScene(e);
+      p.x = s.x + drag.offX; p.y = s.y + drag.offY;
+
+      // nam châm: nếu vừa khít thì kéo hẳn vào ô
+      var slot = nearestSlot(p);
+      if (slot !== null && fits(p, slot)) {
+        var t = slotPos(slot);
+        p.x = t.x; p.y = t.y;
+        clearWarn(p);
+      } else if (slot !== null) {
+        showWarn(p, slot);
+      } else {
+        clearWarn(p);
+      }
+      applyPos(p);
+    });
+
+    function endDrag(e) {
+      if (!drag || drag.p !== p) return;
+      clearTimeout(drag.lp);
+      try { p.g.releasePointerCapture(drag.id); } catch (err) {}
+      var wasMoved = drag.moved, longFired = drag.longFired;
+      drag = null;
+      p.g.classList.remove('dragging');
+
+      if (wasMoved) {
+        var slot = nearestSlot(p);
+        if (slot !== null && fits(p, slot)) {
+          var t = slotPos(slot);
+          p.x = t.x; p.y = t.y; p.placed = true;
+          applySeat(p); applyPos(p);
+          clearWarn(p);
+          sendBack(p);
+          renderHud();
+          checkWin();
+        } else {
+          if (slot !== null) showWarn(p, slot);
+          applyPos(p);
+        }
+        return;
+      }
+      if (longFired) return;
+      handleTap(p);
+    }
+    p.g.addEventListener('pointerup', endDrag);
+    p.g.addEventListener('pointercancel', endDrag);
+  }
+
+  // 1 chạm = quay phải, 2 chạm liên tiếp = quay trái
+  var tapTimer = null, tapPiece = null;
+  function handleTap(p) {
+    if (tapTimer && tapPiece === p) {
+      clearTimeout(tapTimer); tapTimer = null; tapPiece = null;
+      rotate(p, -1);
+      return;
+    }
+    if (tapTimer) { clearTimeout(tapTimer); tapTimer = null; }
+    tapPiece = p;
+    tapTimer = setTimeout(function () {
+      tapTimer = null; tapPiece = null;
+      rotate(p, +1);
+    }, 260);
+  }
+
+  /* ==================================================================
+     7. VÒNG CHƠI
+     ================================================================== */
+
+  function scramble() {
+    var order = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+    for (var i = order.length - 1; i > 0; i--) {
+      var j = (Math.random() * (i + 1)) | 0, t = order[i]; order[i] = order[j]; order[j] = t;
+    }
+    for (i = 0; i < pieces.length; i++) {
+      var p = pieces[order[i]];
+      var spot = traySpot(L, i);
+      p.x = spot.x; p.y = spot.y;
+      p.rot = (Math.random() * 4) | 0;
+      p.flip = Math.random() < 0.4;
+      p.placed = false;
+      clearWarn(p);
+      applySeat(p); applyArt(p); applyPos(p);
+      sendBack(p);
+    }
+  }
+
+  function placedCount() {
+    var n = 0;
+    for (var i = 0; i < pieces.length; i++) if (pieces[i].placed) n++;
+    return n;
+  }
+
+  function renderHud() {
+    els.statDone.textContent = placedCount() + '/9';
+    if (!selected) els.who.textContent = 'Chạm vào một mảnh ghép để chọn';
+    else els.who.innerHTML = 'Đang chọn: <b>Mảnh ' + (selected.id + 1) + '</b>' +
+      (selected.placed ? ' · đã ghép' : ' · góc ' + (selected.rot * 90) + '°' + (selected.flip ? ' · mặt sau' : ''));
+  }
+
+  function fmt(ms) {
+    var s = Math.floor(ms / 1000), m = Math.floor(s / 60);
+    s = s % 60;
+    return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  }
+  function startTimer() {
+    if (timer.running || won) return;
+    timer.running = true;
+    timer.t0 = Date.now() - timer.elapsed;
+    timer.id = setInterval(function () {
+      timer.elapsed = Date.now() - timer.t0;
+      els.statTime.textContent = fmt(timer.elapsed);
+    }, 250);
+  }
+  function stopTimer() {
+    timer.running = false;
+    if (timer.id) { clearInterval(timer.id); timer.id = null; }
+  }
+  function resetTimer() {
+    stopTimer(); timer.elapsed = 0; els.statTime.textContent = '00:00';
+  }
+
+  function checkWin() {
+    if (placedCount() !== 9) return;
+    won = true;
+    stopTimer();
+    select(null);
+    confetti();
+    els.winStats.textContent = 'Thời gian: ' + fmt(timer.elapsed);
+    openModal(els.winBack);
+  }
+
+  function confetti() {
+    var host = document.createElement('div');
+    host.className = 'confetti';
+    var colors = ['#c4703f', '#e0894f', '#ffd23f', '#8a4a2a', '#ffffff', '#d8552f'];
+    for (var i = 0; i < 70; i++) {
+      var el = document.createElement('div');
+      el.className = 'cf';
+      el.style.left = (Math.random() * 100) + '%';
+      el.style.background = colors[i % colors.length];
+      el.style.animationDuration = (2.2 + Math.random() * 1.8) + 's';
+      el.style.animationDelay = (Math.random() * 0.7) + 's';
+      host.appendChild(el);
+    }
+    document.body.appendChild(host);
+    setTimeout(function () { if (host.parentNode) host.parentNode.removeChild(host); }, 5200);
+  }
+
+  function toast(msg, kind) {
+    var t = document.createElement('div');
+    t.className = 'toast ' + (kind || '');
+    t.textContent = msg;
+    els.toasts.appendChild(t);
+    setTimeout(function () {
+      t.classList.add('out');
+      setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 320);
+    }, 2000);
+  }
+
+  function openModal(m) { m.classList.add('show'); }
+  function closeModal(m) { m.classList.remove('show'); }
+
+  function reset() {
+    won = false;
+    closeModal(els.winBack);
+    resetTimer();
+    select(null);
+    scramble();
+    renderHud();
+    toast('Ván mới bắt đầu! 🧩', 'good');
+  }
+
+  /* ==================================================================
+     8. KHỞI ĐỘNG
+     ================================================================== */
+
+  function init() {
+    svg = document.getElementById('scene');
+    ['statTime', 'statDone', 'who', 'toasts', 'btnReset', 'btnHelp',
+     'actLeft', 'actFlip', 'actRight', 'winBack', 'winReplay', 'winStats',
+     'helpBack', 'helpClose'].forEach(function (id) { els[id] = document.getElementById(id); });
+
+    buildScene();
+    buildPieces();
+    scramble();
+    renderHud();
+
+    els.actLeft.addEventListener('click', function () { if (selected) rotate(selected, -1); renderHud(); });
+    els.actRight.addEventListener('click', function () { if (selected) rotate(selected, +1); renderHud(); });
+    els.actFlip.addEventListener('click', function () { if (selected) flip(selected); renderHud(); });
+    els.btnReset.addEventListener('click', reset);
+    els.winReplay.addEventListener('click', reset);
+    els.btnHelp.addEventListener('click', function () { openModal(els.helpBack); });
+    els.helpClose.addEventListener('click', function () { closeModal(els.helpBack); });
+    els.helpBack.addEventListener('click', function (e) {
+      if (e.target === els.helpBack) closeModal(els.helpBack);
+    });
+
+    svg.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+    // đổi bố cục khi xoay màn hình / đổi kích thước
+    var rid = null, mode = (L.trayCols === 2 ? 'wide' : 'tall');
+    window.addEventListener('resize', function () {
+      clearTimeout(rid);
+      rid = setTimeout(function () {
+        var next = (window.innerWidth >= 900) ? 'wide' : 'tall';
+        if (next === mode) return;
+        mode = next;
+        var snapshot = pieces.map(function (p) { return { rot: p.rot, flip: p.flip, placed: p.placed }; });
+        buildScene(); buildPieces();
+        for (var i = 0; i < pieces.length; i++) {
+          var p = pieces[i], s = snapshot[i];
+          p.rot = s.rot; p.flip = s.flip; p.placed = s.placed;
+          if (p.placed) { var t = slotPos(p.id); p.x = t.x; p.y = t.y; }
+          else { var spot = traySpot(L, i); p.x = spot.x; p.y = spot.y; }
+          applySeat(p); applyArt(p); applyPos(p);
+        }
+        renderHud();
+      }, 220);
+    });
+
+    // API cho kiểm thử tự động
+    window.__puzzle = {
+      get pieces() { return pieces; },
+      get layout() { return L; },
+      get won() { return won; },
+      slotPos: slotPos,
+      fits: fits,
+      sideOk: sideOk,
+      rotate: rotate,
+      flip: flip,
+      select: select,
+      reset: reset,
+      nearestSlot: nearestSlot,
+      place: function (i) {          // đặt thẳng mảnh i vào đúng ô (dùng để test)
+        var p = pieces[i], t = slotPos(p.id);
+        p.rot = 0; p.flip = false; p.x = t.x; p.y = t.y; p.placed = true;
+        applySeat(p); applyArt(p); applyPos(p); clearWarn(p); renderHud(); checkWin();
+      },
+      elapsed: function () { return timer.elapsed; }
+    };
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>
+</body>
+</html>

@@ -8,6 +8,7 @@ Static site (no build step) hosting small browser games. Deployed free on Vercel
 index.html              Trang chủ — lưới ô vuông, mỗi ô là một trò chơi
 assets/shell.css        Style dùng chung (nền, nút, modal, toast)
 dua-linh-sang-song/     Trò chơi 1 — Đưa Lính Sang Sông
+manh-ghep-vo-cuc/       Trò chơi 2 — Mảnh Ghép Vô Cực
 vercel.json             cleanUrls
 ```
 
@@ -39,6 +40,16 @@ L1 lùi · L3 lùi · L4 chuyền lên L3 · L3 lùi · L4 lùi
 ```
 
 Kết thúc: cả 4 người lính ở vạch 0, năng lượng 0/0/0/0.
+
+## Mảnh Ghép Vô Cực — luật
+
+- 9 mảnh gốm nung, ghép vào khung vuông ở giữa. Mảnh chưa ghép nằm hai bên trái/phải.
+- Kéo để di chuyển. Tới gần ô trống mà **vừa khít** thì mảnh bị **hút** vào đúng vị trí.
+- Đặt sai: các cạnh không khớp **hiện đỏ** và mảnh **không** bị hút vào.
+- Chạm 1 lần = quay phải 90°, chạm 2 lần liên tiếp = quay trái 90°, ấn giữ = lật mặt.
+  Có thêm ba nút Quay trái / Lật mặt / Quay phải.
+- Chỉ phân biệt được bằng **hình dạng đường viền** — mọi mảnh cùng một màu, không hoa văn.
+- Có đồng hồ tính giờ; nút Chơi lại xáo lại toàn bộ và đưa mảnh ra ngoài khung.
 
 ## Thêm trò chơi mới
 

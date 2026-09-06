@@ -94,8 +94,8 @@
   position:absolute;
   left:var(--cx);
   top:var(--cy);
-  width:clamp(54px,10.5vw,96px);
-  width:clamp(38px,21cqh,92px);
+  width:clamp(30px,7vw,64px);
+  width:clamp(28px,13cqh,68px);
   padding:0;margin:0;border:0;background:none;
   transform:translate(-50%,-50%);
   cursor:pointer;
@@ -135,8 +135,8 @@
 
 .ring{
   position:absolute;
-  left:50%;top:56%;
-  width:130%;height:70%;
+  left:50%;top:50%;
+  width:134%;height:97%;
   transform:translate(-50%,-50%);
   border-radius:50%;
   border:3px solid var(--accent);
@@ -182,7 +182,7 @@
 /* Dấu tiến độ: ↗ = đã rời vạch nhưng chưa về, ✓ = đã về vạch xuất phát */
 .left-tick{
   position:absolute;
-  left:-3px;top:-3px;
+  left:-15px;top:-1px;
   width:17px;height:17px;
   border-radius:50%;
   background:#f0932b;
@@ -201,9 +201,9 @@
 /* flag carried in the beak */
 .held{
   position:absolute;
-  left:-16%;
-  top:-14%;
-  width:50%;
+  left:-15.6%;
+  top:-7.4%;
+  width:72%;
   opacity:0;
   transform:scale(.25) rotate(-30deg);
   transform-origin:bottom right;
@@ -333,7 +333,6 @@
 
 @media (max-width:700px){
   .board{aspect-ratio:1.5/1}
-  .badge{left:auto;right:-8px;top:auto;bottom:-2px}
   .tag{display:none}
 
   /* Gọn phần đầu trang để hàng nút điều khiển không bị đẩy xuống dưới màn hình */
@@ -469,29 +468,58 @@
   var NAMES = ["Vịt 1", "Vịt 2", "Vịt 3", "Vịt 4"];
 
   // Toạ độ theo % của bảng. Vạch 0 ở bên phải, vạch 4 ở bên trái.
-  function colX(c) { return 84 - c * 18.5; }
+  function colX(c) { return 78 - c * 17; }
   function rowY(r) { return 13 + r * 24; }
 
   /* ===================== Đồ hoạ ===================== */
-  function duckSVG(withCap) {
-    var cap = withCap
-      ? '<path d="M11 17 q7 -16 27 -11 q13 4 12 14 z" fill="#e64b35"/>' +
-        '<path d="M12 20 q-13 0 -13 4.5 q0 3.5 13 2 z" fill="#c0392b"/>'
-      : '<path d="M34 9 q4 -10 11 -7 q-4 6 -3 9 z" fill="#ffd93d"/>';
-    return '' +
-      '<svg viewBox="0 0 112 84" xmlns="http://www.w3.org/2000/svg">' +
-        '<ellipse cx="58" cy="70" rx="43" ry="7" fill="#ffffff" opacity=".42"/>' +
-        '<path d="M92 40 q18 -8 19 3 q1 10 -16 10 z" fill="#f2b705"/>' +
-        '<ellipse cx="60" cy="50" rx="37" ry="22" fill="#ffd23f"/>' +
-        '<path d="M24 50 q10 -20 36 -20 q26 0 36 20 z" fill="#ffdd68" opacity=".65"/>' +
-        '<circle cx="31" cy="29" r="19.5" fill="#ffd93d"/>' +
-        cap +
-        '<path d="M15 32 q-15 2 -15 7.5 q0 5.5 15 4 z" fill="#f5822b"/>' +
-        '<path d="M15 39 q-13 1 -13 3 q0 2.5 13 1.5 z" fill="#dd6a18"/>' +
-        '<circle cx="27" cy="24" r="3.4" fill="#3a2a12"/>' +
-        '<circle cx="28.2" cy="22.8" r="1.1" fill="#ffffff"/>' +
-        '<path d="M55 47 q15 -13 30 -2 q-11 15 -30 7 z" fill="#f2b705"/>' +
-        '<path d="M58 49 q12 -8 22 -2" stroke="#e0a904" stroke-width="2" fill="none" stroke-linecap="round"/>' +
+  // Người lính thời phong kiến: khăn vải quấn đầu, áo vải, thắt lưng, giày vải.
+  // Mặt quay sang TRÁI (hướng tiến tới cờ); lật ngang bằng scaleX khi lùi.
+  function soldierSVG(isFlagRow) {
+    var wrap  = isFlagRow ? "#d1452f" : "#7c5433";   // khăn vải
+    var wrapD = isFlagRow ? "#a32d1c" : "#5f3f1f";
+    var sash  = isFlagRow ? "#d1452f" : "#3f5168";   // thắt lưng
+    return "" +
+      '<svg viewBox="0 0 72 104" xmlns="http://www.w3.org/2000/svg">' +
+        /* gợn nước dưới chân */
+        '<ellipse cx="36" cy="99" rx="23" ry="4.6" fill="#ffffff" opacity=".38"/>' +
+        /* chân sau + giày vải */
+        '<rect x="36.5" y="66" width="10.5" height="25" rx="5" fill="#33415a"/>' +
+        '<path d="M31 88 h13.5 q4.4 0 4.4 4 t-4.4 4 H28.2 q-3.8 0 -3.2 -4 z" fill="#d6c8a8"/>' +
+        /* tay sau */
+        '<path d="M47.5 44 q8.4 8.5 7.6 18.8 l-6.8 0.5 q0.6 -9 -5.4 -15.6 z" fill="#8f6234"/>' +
+        '<circle cx="52" cy="66.5" r="4.2" fill="#dda275"/>' +
+        /* chân trước + giày vải */
+        '<rect x="24.5" y="66" width="10.5" height="25" rx="5" fill="#46566e"/>' +
+        '<path d="M19 88 h13.5 q4.4 0 4.4 4 t-4.4 4 H16.2 q-3.8 0 -3.2 -4 z" fill="#f4ead4"/>' +
+        '<path d="M12.9 94 h24 q0 2 -3.8 2 H16.2 q-3.4 0 -3.3 -2 z" fill="#cdbf9c"/>' +
+        /* cổ */
+        '<rect x="27.5" y="33" width="8.5" height="11" fill="#dda275"/>' +
+        /* áo vải */
+        '<path d="M19.5 43 q16.5 -9 33 0 l2.4 24 q-19 5.6 -37.8 0 z" fill="#a8763f"/>' +
+        '<path d="M19.5 43 q16.5 -9 33 0 l1 11 q-17.5 4.6 -35 0 z" fill="#bd8a4e"/>' +
+        /* cổ áo giao lĩnh */
+        '<path d="M27 40 l9.4 5.4 l-5 11.6 l-6.6 -13 z" fill="#8a5f31"/>' +
+        '<path d="M29 41.2 l5.8 3.3 l-3.3 7.5 z" fill="#eaddc2"/>' +
+        /* thắt lưng + vạt áo dưới */
+        '<rect x="17.6" y="52" width="36.8" height="7" rx="3.5" fill="' + sash + '"/>' +
+        '<path d="M18 59 q18 5.2 36 0 l0.9 8 q-19 5.6 -37.8 0 z" fill="#96683a"/>' +
+        /* tay trước */
+        '<path d="M25.5 44 q-11 7.6 -12.4 17.8 l6.8 1.5 q1.3 -8.8 8.6 -15.4 z" fill="#c9974f"/>' +
+        '<path d="M25.5 44 q-11 7.6 -12.4 17.8 l1.7 0.4 q1 -9.4 9.2 -16.4 z" fill="#d9a95f"/>' +
+        '<circle cx="13.6" cy="63.4" r="4.7" fill="#f0c49b"/>' +
+        /* nút khăn sau gáy */
+        '<path d="M42.5 11.5 q8.6 -2.2 9.8 4.4 q1.2 6.6 -6.6 5.4 q2.8 -4.6 -3.2 -6.2 z" fill="' + wrap + '"/>' +
+        '<path d="M46.6 19.5 q5.2 2.6 4.4 7.2 q-2.6 -3.2 -6.2 -3.4 z" fill="' + wrapD + '"/>' +
+        /* đầu */
+        '<circle cx="31" cy="25" r="12.6" fill="#f0c49b"/>' +
+        '<circle cx="40.8" cy="27.5" r="2.9" fill="#dda275"/>' +
+        '<path d="M19.6 25.4 q-3.6 2.2 -0.5 4.3 q1.7 0.4 2.5 -0.7 z" fill="#e8b083"/>' +
+        '<circle cx="24.8" cy="26.4" r="2.3" fill="#3a2a12"/>' +
+        '<circle cx="25.7" cy="25.5" r="0.8" fill="#ffffff"/>' +
+        '<path d="M22 31.8 q3.4 2.4 6.4 0.4" stroke="#c07f57" stroke-width="1.7" fill="none" stroke-linecap="round"/>' +
+        /* khăn vải quấn đầu */
+        '<path d="M18.8 20 q-0.4 -15 12.2 -15 q12.6 0 12.2 15 q-12.2 3.6 -24.4 0 z" fill="' + wrap + '"/>' +
+        '<path d="M18.9 14.6 q12.1 4 24.2 0 l0.3 5.6 q-12.2 3.8 -24.4 0 z" fill="' + wrapD + '"/>' +
       '</svg>';
   }
 
@@ -629,7 +657,7 @@
         '<span class="ring"></span>' +
         '<span class="duck-body" style="--d:' + (i * 0.35) + 's">' +
           '<span class="duck-art">' +
-            duckSVG(i === FLAG_ROW) +
+            soldierSVG(i === FLAG_ROW) +
             '<span class="held">' + heldFlagSVG() + '</span>' +
           '</span>' +
         '</span>' +

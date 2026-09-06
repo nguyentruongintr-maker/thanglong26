@@ -328,6 +328,7 @@
 .rules-list{text-align:left;margin:14px 0 0;padding-left:20px;color:#d5e9f7;font-size:14px;line-height:1.7}
 .rules-list li{margin-bottom:5px}
 .rules-list b{color:var(--accent)}
+.intro-list{font-size:15px;line-height:1.85}
 .rules-note{text-align:left;margin:12px 0 0;font-size:13px;line-height:1.6;color:#a9c8de;border-left:3px solid rgba(255,210,63,.5);padding-left:11px}
 .rules-note b{color:var(--accent)}
 
@@ -426,6 +427,21 @@
     <div class="modal-actions">
       <button class="btn btn-primary" id="stuckReplay" type="button">↻ Chơi lại</button>
       <a class="btn" href="../index.html">🏠 Về Trang Chủ</a>
+    </div>
+  </div>
+</div>
+
+<div class="modal-back" id="introBack" role="dialog" aria-modal="true" aria-labelledby="introTitle">
+  <div class="modal">
+    <div class="trophy">🚩</div>
+    <h2 id="introTitle">Đưa Lính Sang Sông</h2>
+    <ol class="rules-list intro-list">
+      <li>Lấy cờ đưa về.</li>
+      <li>Tất cả lính phải rời vạch xuất phát.</li>
+      <li>Tất cả lính phải quay trở về vạch xuất phát khi đã có cờ.</li>
+    </ol>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="introOk" type="button">Xác nhận</button>
     </div>
   </div>
 </div>
@@ -800,15 +816,21 @@
   }
 
   /* ===================== Hành động ===================== */
+  // Chưa bấm Xác nhận thì chưa được chơi (lớp phủ chặn chuột, hàm này
+  // chặn nốt các đường khác: bàn phím, focus vào nút phía sau...).
+  function introOpen() {
+    return !!els.introBack && els.introBack.classList.contains("show");
+  }
+
   function onDuckClick(e) {
-    if (busy) return;
+    if (busy || introOpen()) return;
     var row = Number(e.currentTarget.dataset.row);
     state.selected = (state.selected === row) ? null : row;
     render();
   }
 
   function tryMove(step) {
-    if (busy || state.selected === null) return;
+    if (busy || introOpen() || state.selected === null) return;
     var d = state.ducks[state.selected];
     var v = canMove(d, step);
     if (!v.ok) { toast(v.why, "bad"); return; }
@@ -844,7 +866,7 @@
   }
 
   function tryTransfer(dr) {
-    if (busy || state.selected === null) return;
+    if (busy || introOpen() || state.selected === null) return;
     var d = state.ducks[state.selected];
     var v = canTransfer(d, dr);
     if (!v.ok) { toast(v.why, "bad"); return; }
@@ -915,7 +937,8 @@
      "statMoves", "statLeft", "statHome", "statEnergy",
      "actFwd", "actBack", "actUp", "actDown",
      "btnReset", "btnRules", "winBack", "stuckBack", "rulesBack",
-     "winReplay", "stuckReplay", "rulesClose", "winStats"].forEach(function (id) {
+     "winReplay", "stuckReplay", "rulesClose", "winStats",
+     "introBack", "introOk"].forEach(function (id) {
       els[id] = document.getElementById(id);
     });
 
@@ -927,6 +950,7 @@
     els.btnReset.addEventListener("click", reset);
     els.winReplay.addEventListener("click", reset);
     els.stuckReplay.addEventListener("click", reset);
+    els.introOk.addEventListener("click", function () { closeModal(els.introBack); });
     els.btnRules.addEventListener("click", function () { openModal(els.rulesBack); });
     els.rulesClose.addEventListener("click", function () { closeModal(els.rulesBack); });
     els.rulesBack.addEventListener("click", function (e) {
@@ -935,6 +959,11 @@
 
     // phím tắt trên máy tính
     document.addEventListener("keydown", function (e) {
+      // Chưa bấm Xác nhận thì chưa chơi được; Enter/Space coi như bấm Xác nhận.
+      if (els.introBack.classList.contains("show")) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); closeModal(els.introBack); }
+        return;
+      }
       if (e.key === "Escape") { closeModal(els.rulesBack); return; }
       if (state.selected === null) {
         if (e.key >= "1" && e.key <= "4") { state.selected = Number(e.key) - 1; render(); }
@@ -950,6 +979,10 @@
     state = newState();
     build();
     render();
+
+    // Chỉ hiện lúc mới mở trang. reset() không gọi lại nên bấm
+    // "Chơi lại" hay "Chơi lại" sau khi thắng đều không hiện lại.
+    openModal(els.introBack);
 
     // cho phép kiểm thử tự động
     window.__game = {

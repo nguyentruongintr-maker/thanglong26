@@ -281,6 +281,16 @@
   ];
   var MAX_ERR = 3;
 
+  // Thư mục ảnh: tự suy ra từ địa chỉ trang để chạy đúng ở cả ba dạng
+  //   /thien-nien-su-sudoku/            (có dấu / cuối)
+  //   /thien-nien-su-sudoku             (Vercel cleanUrls, không có dấu /)
+  //   .../thien-nien-su-sudoku/index.html   (mở thẳng bằng file://)
+  var IMG = (function () {
+    var b = location.pathname.replace(/[^\/]*\.[^\/]*$/, '');
+    if (b.charAt(b.length - 1) !== '/') b += '/';
+    return b + 'img/';
+  })();
+
   // yc 12: vị trí ghi chú quanh mép ô, tính theo % (trái, trên).
   // Vùng giữa ô luôn để trống cho hiện vật điền thật.
   var NOTE_POS = {
@@ -332,7 +342,7 @@
       b.type = 'button';
       b.dataset.v = v;
       b.setAttribute('aria-label', 'Hiện vật ' + v);
-      b.innerHTML = '<img src="img/' + v + '.png" alt="Hiện vật ' + v + '">' +
+      b.innerHTML = '<img src="' + IMG + v + '.png" alt="Hiện vật ' + v + '">' +
                     '<span class="left">9</span>';
       els.picker.appendChild(b);
       picks.push(b);
@@ -373,12 +383,12 @@
   function renderCell(i) {
     var d = cells[i], v = value[i], html = '';
     if (v) {
-      html = '<img class="big" src="img/' + v + '.png" alt="Hiện vật ' + v + '">';
+      html = '<img class="big" src="' + IMG + v + '.png" alt="Hiện vật ' + v + '">';
     } else {
       for (var k in notes[i]) {
         if (!notes[i][k]) continue;
         var p = NOTE_POS[k];
-        html += '<img class="note" src="img/' + k + '.png" alt="" ' +
+        html += '<img class="note" src="' + IMG + k + '.png" alt="" ' +
                 'style="left:' + p[0] + '%;top:' + p[1] + '%">';
       }
     }

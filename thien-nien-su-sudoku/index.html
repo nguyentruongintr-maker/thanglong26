@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Thiên Niên Sử Sudoku — Thăng Long 26</title>
+<meta name="description" content="Sudoku 9x9 với 9 hiện vật gốm Thăng Long thay cho các chữ số.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%BA%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/shell.css">
+<style>
+:root{
+  --clay:#b05c33;
+  --clay-lo:#7a3a1c;
+  --clay-hi:#d18b58;
+  --paper-1:#fdfaf5;
+  --line:#e2d5c2;
+}
+
+/* ===================== Bàn cờ ===================== */
+.boardwrap{ display:flex; justify-content:center; }
+.board{
+  position:relative;
+  width:max(250px, min(100%, 528px, calc(100dvh - 342px)));
+  max-width:100%;
+  aspect-ratio:1/1;
+  background:var(--paper-1);
+  border-radius:12px;
+  padding:7px;
+  background-clip:padding-box;
+  border:7px solid var(--clay);
+  box-shadow:
+    0 9px 0 var(--clay-lo),
+    0 20px 34px rgba(4,10,18,.55),
+    inset 0 0 0 2px rgba(255,255,255,.55);
+  touch-action:manipulation;
+  user-select:none;
+  -webkit-user-select:none;
+}
+.grid{
+  position:relative;
+  width:100%; height:100%;
+  display:grid;
+  grid-template-columns:repeat(9,1fr);
+  grid-template-rows:repeat(9,1fr);
+  background:var(--paper-1);
+  border-radius:4px;
+  overflow:hidden;
+}
+.cell{
+  position:relative;
+  display:grid; place-items:center;
+  border-right:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+  cursor:pointer;
+  background:var(--paper-1);
+  transition:background .12s ease;
+}
+.cell:nth-child(9n){ border-right:0 }
+.cell:nth-child(n+73){ border-bottom:0 }
+
+/* ô đề bài: nền ngà nhạt để phân biệt với ô người chơi điền */
+.cell.given{ background:#f6efe3 }
+
+/* yc 4: hàng, cột và khu 3x3 của ô đang chọn được làm mờ */
+.cell.peer{ background:#efe4d3 }
+.cell.given.peer{ background:#eadcc6 }
+/* yc 6: các ô cùng giá trị cũng sáng lên */
+.cell.same{ background:#ffdfae }
+/* yc 5: ô đang chọn sáng nhất */
+.cell.sel{ background:#fff3cd; box-shadow:inset 0 0 0 3px #e5a53a; z-index:2 }
+/* yc 13: điền sai thì viền đỏ */
+.cell.wrong{ box-shadow:inset 0 0 0 3px #d93025; z-index:3 }
+.cell.sel.wrong{ box-shadow:inset 0 0 0 3px #d93025, inset 0 0 0 6px rgba(229,165,58,.5) }
+
+.cell img.big{
+  width:78%; height:78%;
+  object-fit:contain;
+  pointer-events:none;
+  animation:drop .22s cubic-bezier(.3,1.4,.5,1);
+}
+@keyframes drop{ from{ transform:scale(.5); opacity:0 } to{ transform:none; opacity:1 } }
+.cell.wrong img.big{ opacity:.72; filter:grayscale(.35) }
+
+/* yc 12: ghi chú nhỏ quanh mép, chừa trống vùng giữa */
+.note{
+  position:absolute;
+  width:26%; height:26%;
+  object-fit:contain;
+  transform:translate(-50%,-50%);
+  opacity:.8;
+  pointer-events:none;
+}
+
+/* yc 3: vạch phân khu 3x3 dày hơn, có khối nổi */
+.sep{ position:absolute; pointer-events:none; z-index:4; border-radius:3px }
+.sep.v{
+  top:-1px; bottom:-1px; width:6px; margin-left:-3px;
+  background:linear-gradient(90deg,var(--clay-hi),var(--clay) 45%,var(--clay-lo));
+  box-shadow:1px 0 3px rgba(60,28,10,.45), inset 1px 0 0 rgba(255,229,205,.5);
+}
+.sep.h{
+  left:-1px; right:-1px; height:6px; margin-top:-3px;
+  background:linear-gradient(180deg,var(--clay-hi),var(--clay) 45%,var(--clay-lo));
+  box-shadow:0 1px 3px rgba(60,28,10,.45), inset 0 1px 0 rgba(255,229,205,.5);
+}
+
+/* ===================== HUD ===================== */
+.hud{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  margin:12px 0 10px; font-size:13px; font-weight:800;
+}
+.hud .stat{
+  background:var(--glass); border:1px solid var(--glass-line);
+  border-radius:12px; padding:8px 12px; color:var(--paper);
+  flex:1 1 auto; text-align:center;
+}
+.hud .stat b{ color:var(--accent) }
+.hud .stat.time b{ font-variant-numeric:tabular-nums; letter-spacing:.5px }
+.hud .stat.err b.hot{ color:#ff6a5c }
+
+/* ===================== Dải mảnh ghép ===================== */
+.tray{ padding:10px; display:flex; flex-direction:column; gap:10px; margin:10px auto 0;
+       width:max(250px, min(100%, 528px, calc(100dvh - 342px)));
+       max-width:100% }
+.picker{ display:grid; grid-template-columns:repeat(9,minmax(0,1fr)); gap:5px }
+.pick{
+  position:relative;
+  appearance:none;
+  border:1px solid var(--glass-line);
+  background:rgba(255,255,255,.94);
+  border-radius:12px;
+  padding:5px 2px 13px;
+  cursor:pointer;
+  display:grid; place-items:center;
+  aspect-ratio:1/1;
+  min-width:0;
+  transition:transform .14s ease, box-shadow .18s ease, opacity .2s ease;
+  box-shadow:0 3px 0 rgba(120,70,35,.5);
+}
+.pick img{ width:100%; height:100%; min-width:0; min-height:0; object-fit:contain; pointer-events:none }
+.pick .left{
+  position:absolute; left:0; right:0; bottom:2px;
+  font-size:11px; font-weight:900; color:#7a3a1c; line-height:1;
+}
+.pick:hover{ transform:translateY(-2px) }
+.pick:active{ transform:translateY(1px); box-shadow:0 1px 0 rgba(120,70,35,.5) }
+.pick.sel{ box-shadow:0 0 0 3px var(--accent), 0 3px 0 rgba(120,70,35,.5) }
+.pick.done{ opacity:.3; pointer-events:none }
+
+.tools{ display:grid; grid-template-columns:repeat(2,1fr); gap:8px }
+.tool{ min-height:50px; font-size:13px; gap:8px }
+.tool .ico{ font-size:18px }
+.tool.on{ background:linear-gradient(160deg,var(--accent),var(--accent-d)); color:#3a2a05; border-color:transparent }
+
+.help-list{ text-align:left; margin:14px 0 0; padding-left:20px; color:#d5e9f7; font-size:14px; line-height:1.7 }
+.help-list li{ margin-bottom:6px }
+.help-list b{ color:var(--accent) }
+.trophy{ font-size:52px; line-height:1; animation:pop .6s cubic-bezier(.3,1.5,.5,1) both }
+@keyframes pop{ from{ transform:scale(.3) rotate(-20deg); opacity:0 } to{ transform:none; opacity:1 } }
+.confetti{ position:fixed; inset:0; pointer-events:none; z-index:85; overflow:hidden }
+.cf{ position:absolute; width:9px; height:14px; border-radius:2px; animation:fall linear forwards }
+@keyframes fall{ 0%{ transform:translateY(-30px) rotate(0); opacity:1 } 100%{ transform:translateY(105vh) rotate(720deg); opacity:.9 } }
+
+.hud .k-short{ display:none }
+@media (max-width:700px){
+  .topbar .lbl{ display:none }
+  .topbar .btn{ padding:0 13px }
+  .brand-text p{ display:none }
+  .hud .stat{ padding:7px 8px; font-size:12px }
+  .hud .k-long{ display:none }
+  .hud .k-short{ display:inline }
+  .picker{ grid-template-columns:repeat(5,minmax(0,1fr)) }
+  .pick{ padding:4px 2px 12px }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">🏺</div>
+      <div class="brand-text">
+        <h1>Thiên Niên Sử Sudoku</h1>
+        <p>Xếp 9 hiện vật gốm vào đúng chỗ</p>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="btnHelp" type="button" aria-label="Hướng dẫn"><span class="ico">ℹ️</span><span class="lbl">Hướng dẫn</span></button>
+      <button class="btn btn-danger" id="btnReset" type="button" aria-label="Chơi lại màn"><span class="ico">↻</span><span class="lbl">Chơi lại</span></button>
+      <a class="btn" href="../index.html" aria-label="Về Trang Chủ"><span class="ico">🏠</span><span class="lbl">Về Trang Chủ</span></a>
+    </div>
+  </header>
+
+  <div class="hud">
+    <div class="stat"><span class="k-long">Màn</span><span class="k-short">Màn</span>: <b id="statLevel">1/3</b></div>
+    <div class="stat time"><span class="k-long">Thời gian</span><span class="k-short">TG</span>: <b id="statTime">00:00</b></div>
+    <div class="stat err"><span class="k-long">Lỗi</span><span class="k-short">Lỗi</span>: <b id="statErr">0/3</b></div>
+  </div>
+
+  <div class="boardwrap">
+    <div class="board">
+      <div class="grid" id="grid"></div>
+      <div class="sep v" style="left:33.333%"></div>
+      <div class="sep v" style="left:66.667%"></div>
+      <div class="sep h" style="top:33.333%"></div>
+      <div class="sep h" style="top:66.667%"></div>
+    </div>
+  </div>
+
+  <div class="panel tray">
+    <div class="picker" id="picker"></div>
+    <div class="tools">
+      <button class="btn tool" id="btnNote" type="button"><span class="ico">✏️</span><span>Ghi chú: Tắt</span></button>
+      <button class="btn tool" id="btnErase" type="button"><span class="ico">🧽</span><span>Xóa ô</span></button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast-host" id="toasts" aria-live="polite"></div>
+
+<!-- Hoàn thành một màn -->
+<div class="modal-back" id="winBack" role="dialog" aria-modal="true" aria-labelledby="winTitle">
+  <div class="modal">
+    <div class="trophy">🏆</div>
+    <h2 id="winTitle">Hoàn thành Màn 1!</h2>
+    <p id="winMsg">Bạn đã xếp đủ 81 hiện vật vào đúng vị trí.</p>
+    <p id="winStats" style="color:var(--accent);font-weight:800"></p>
+    <div class="modal-actions" id="winActions"></div>
+  </div>
+</div>
+
+<!-- Sai 3 lần -->
+<div class="modal-back" id="failBack" role="dialog" aria-modal="true" aria-labelledby="failTitle">
+  <div class="modal">
+    <div class="trophy">💔</div>
+    <h2 id="failTitle">Đã sai 3 lần</h2>
+    <p>Màn chơi sẽ được đặt lại từ đầu. Cố lên nhé!</p>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="failRetry" type="button">↻ Chơi lại màn này</button>
+      <a class="btn" href="../index.html">🏠 Về Trang Chủ</a>
+    </div>
+  </div>
+</div>
+
+<!-- Hướng dẫn -->
+<div class="modal-back" id="helpBack" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+  <div class="modal">
+    <h2 id="helpTitle">Hướng dẫn</h2>
+    <ol class="help-list">
+      <li>Mỗi <b>hàng</b>, mỗi <b>cột</b> và mỗi <b>khu 3×3</b> phải có đủ 9 hiện vật, không trùng nhau.</li>
+      <li>Chạm vào một ô trống, rồi chạm vào hiện vật ở dải bên dưới để điền.</li>
+      <li>Chạm vào ô đã điền: ô đó và <b>mọi ô cùng hiện vật</b> sẽ sáng lên.</li>
+      <li>Bật <b>Ghi chú</b> để điền nháp — hiện vật sẽ thu nhỏ nằm quanh mép ô.</li>
+      <li>Điền sai thì ô <b>viền đỏ</b>; dùng nút <b>Xóa ô</b> để bỏ đi.</li>
+      <li>Sai <b>3 lần</b> thì màn chơi được đặt lại từ đầu.</li>
+      <li>Xong một màn mới được sang màn kế tiếp.</li>
+    </ol>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="helpClose" type="button">Đã hiểu</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ==================================================================
+     1. DỮ LIỆU MÀN CHƠI  (đề bài đọc từ ảnh Màn 1/2/3.jpg,
+        lời giải đã kiểm tra là DUY NHẤT bằng thuật toán quay lui)
+     ================================================================== */
+  var LEVELS = [
+    { puzzle: "008009460700564038600138200879002306034607520050003874421000050087300000060200701",
+      solution: "318729465792564138645138297879452316134687529256913874421876953587391642963245781" },
+    { puzzle: "207090001010060050056021803032850000674002018000100340501043007369500120748209000",
+      solution: "287395461413768259956421873132854796674932518895176342521643987369587124748219635" },
+    { puzzle: "060071020940628005070093104000840050420307091035100240050706483007900512010280006",
+      solution: "563471829941628735872593164196842357428357691735169248259716483687934512314285976" }
+  ];
+  var MAX_ERR = 3;
+
+  // yc 12: vị trí ghi chú quanh mép ô, tính theo % (trái, trên).
+  // Vùng giữa ô luôn để trống cho hiện vật điền thật.
+  var NOTE_POS = {
+    1: [15, 15],   // góc trên bên trái
+    2: [15, 38],   // ở giữa bên trái (phía trên)
+    3: [85, 15],   // góc trên bên phải
+    4: [85, 38],   // ở giữa bên phải
+    5: [85, 85],   // góc dưới bên phải
+    6: [50, 85],   // ở giữa bên dưới
+    7: [15, 85],   // góc dưới bên trái
+    8: [15, 62],   // ở giữa bên trái (phía dưới)
+    9: [50, 15]    // ở giữa bên trên
+  };
+
+  /* ==================================================================
+     2. TRẠNG THÁI
+     ================================================================== */
+  var els = {}, cells = [], picks = [];
+  var level = 0;                 // chỉ số màn đang chơi (0..2)
+  var given = [], value = [], notes = [], solution = [];
+  var selected = -1, pickValue = 0, noteMode = false;
+  var errors = 0, done = false;
+  var timer = { t0: 0, elapsed: 0, running: false, id: null };
+
+  function idx(r, c) { return r * 9 + c; }
+  function rowOf(i) { return (i / 9) | 0; }
+  function colOf(i) { return i % 9; }
+  function boxOf(i) { return ((rowOf(i) / 3) | 0) * 3 + ((colOf(i) / 3) | 0); }
+
+  /* ==================================================================
+     3. DỰNG GIAO DIỆN
+     ================================================================== */
+  function build() {
+    els.grid.innerHTML = '';
+    cells = [];
+    for (var i = 0; i < 81; i++) {
+      var d = document.createElement('div');
+      d.className = 'cell';
+      d.dataset.i = i;
+      d.setAttribute('role', 'gridcell');
+      els.grid.appendChild(d);
+      cells.push(d);
+    }
+    els.picker.innerHTML = '';
+    picks = [];
+    for (var v = 1; v <= 9; v++) {
+      var b = document.createElement('button');
+      b.className = 'pick';
+      b.type = 'button';
+      b.dataset.v = v;
+      b.setAttribute('aria-label', 'Hiện vật ' + v);
+      b.innerHTML = '<img src="img/' + v + '.png" alt="Hiện vật ' + v + '">' +
+                    '<span class="left">9</span>';
+      els.picker.appendChild(b);
+      picks.push(b);
+    }
+  }
+
+  /* ==================================================================
+     4. NẠP MÀN
+     ================================================================== */
+  function loadLevel(n) {
+    level = n;
+    var L = LEVELS[n];
+    given = []; value = []; notes = []; solution = [];
+    for (var i = 0; i < 81; i++) {
+      var g = +L.puzzle[i];
+      given.push(g !== 0);
+      value.push(g);
+      notes.push({});
+      solution.push(+L.solution[i]);
+    }
+    selected = -1; pickValue = 0; errors = 0; done = false;
+    noteMode = false;
+    resetTimer();
+    closeModal(els.winBack); closeModal(els.failBack);
+    renderAll();
+  }
+
+  function resetLevel() {
+    loadLevel(level);
+    toast('Màn ' + (level + 1) + ' đã được đặt lại', 'bad');
+  }
+
+  /* ==================================================================
+     5. VẼ
+     ================================================================== */
+  function isWrong(i) { return !given[i] && value[i] !== 0 && value[i] !== solution[i]; }
+
+  function renderCell(i) {
+    var d = cells[i], v = value[i], html = '';
+    if (v) {
+      html = '<img class="big" src="img/' + v + '.png" alt="Hiện vật ' + v + '">';
+    } else {
+      for (var k in notes[i]) {
+        if (!notes[i][k]) continue;
+        var p = NOTE_POS[k];
+        html += '<img class="note" src="img/' + k + '.png" alt="" ' +
+                'style="left:' + p[0] + '%;top:' + p[1] + '%">';
+      }
+    }
+    d.innerHTML = html;
+    d.classList.toggle('given', given[i]);
+    d.classList.toggle('wrong', isWrong(i));
+  }
+
+  function renderHighlight() {
+    var sr = selected >= 0 ? rowOf(selected) : -1;
+    var sc = selected >= 0 ? colOf(selected) : -1;
+    var sb = selected >= 0 ? boxOf(selected) : -1;
+    var sv = selected >= 0 ? value[selected] : 0;
+    for (var i = 0; i < 81; i++) {
+      var d = cells[i];
+      var peer = selected >= 0 && (rowOf(i) === sr || colOf(i) === sc || boxOf(i) === sb);
+      var same = sv !== 0 && value[i] === sv && i !== selected;
+      d.classList.toggle('peer', peer && i !== selected);
+      d.classList.toggle('same', same);
+      d.classList.toggle('sel', i === selected);
+    }
+  }
+
+  function renderPicker() {
+    var count = [0,0,0,0,0,0,0,0,0,0];
+    for (var i = 0; i < 81; i++) {
+      // chỉ tính những ô đã điền ĐÚNG
+      if (value[i] && value[i] === solution[i]) count[value[i]]++;
+    }
+    for (var v = 1; v <= 9; v++) {
+      var left = 9 - count[v];
+      picks[v - 1].querySelector('.left').textContent = left;
+      picks[v - 1].classList.toggle('done', left === 0);
+      picks[v - 1].classList.toggle('sel', pickValue === v);
+    }
+  }
+
+  function renderHud() {
+    els.statLevel.textContent = (level + 1) + '/' + LEVELS.length;
+    els.statErr.textContent = errors + '/' + MAX_ERR;
+    els.statErr.classList.toggle('hot', errors > 0);
+    els.btnNote.querySelector('span:last-child').textContent = 'Ghi chú: ' + (noteMode ? 'Bật' : 'Tắt');
+    els.btnNote.classList.toggle('on', noteMode);
+  }
+
+  function renderAll() {
+    for (var i = 0; i < 81; i++) renderCell(i);
+    renderHighlight(); renderPicker(); renderHud();
+  }
+
+  /* ==================================================================
+     6. THAO TÁC
+     ================================================================== */
+  function selectCell(i) {
+    if (done) return;
+    startTimer();
+    selected = i;
+    renderHighlight();
+  }
+
+  function place(v) {
+    if (done || selected < 0) return;
+    var i = selected;
+    if (given[i]) { toast('Ô này là đề bài, không sửa được', 'bad'); return; }
+    startTimer();
+
+    if (noteMode) {
+      if (value[i]) return;                       // ô đã điền thật thì không ghi chú
+      notes[i][v] = !notes[i][v];
+      renderCell(i); renderHighlight();
+      return;
+    }
+
+    if (value[i] === v) return;                   // điền lại đúng thứ đang có
+    value[i] = v;
+    notes[i] = {};
+    renderCell(i);
+
+    if (v !== solution[i]) {
+      errors++;
+      renderHud();
+      toast('Sai rồi! Còn ' + (MAX_ERR - errors) + ' lần', 'bad');
+      if (errors >= MAX_ERR) { openModal(els.failBack); stopTimer(); }
+      renderHighlight(); renderPicker();
+      return;
+    }
+    // điền đúng: dọn ghi chú cùng giá trị ở hàng/cột/khu
+    clearPeerNotes(i, v);
+    renderHighlight(); renderPicker();
+    checkWin();
+  }
+
+  function clearPeerNotes(i, v) {
+    var r = rowOf(i), c = colOf(i), b = boxOf(i);
+    for (var j = 0; j < 81; j++) {
+      if (j === i || value[j]) continue;
+      if (rowOf(j) === r || colOf(j) === c || boxOf(j) === b) {
+        if (notes[j][v]) { delete notes[j][v]; renderCell(j); }
+      }
+    }
+  }
+
+  function erase() {
+    if (done || selected < 0) return;
+    var i = selected;
+    if (given[i]) { toast('Ô đề bài không xóa được', 'bad'); return; }
+    if (!value[i] && !Object.keys(notes[i]).length) return;
+    value[i] = 0; notes[i] = {};
+    renderCell(i); renderHighlight(); renderPicker();
+  }
+
+  function checkWin() {
+    for (var i = 0; i < 81; i++) if (value[i] !== solution[i]) return;
+    done = true;
+    stopTimer();
+    selected = -1;
+    renderHighlight();
+    confetti();
+    var last = (level === LEVELS.length - 1);
+    els.winTitle.textContent = last ? 'Hoàn thành cả 3 màn!' : 'Hoàn thành Màn ' + (level + 1) + '!';
+    els.winMsg.textContent = last
+      ? 'Bạn đã đi hết Thiên Niên Sử. Xin chúc mừng!'
+      : 'Bạn đã xếp đủ 81 hiện vật vào đúng vị trí.';
+    els.winStats.textContent = 'Thời gian: ' + fmt(timer.elapsed) + ' · Lỗi: ' + errors + '/' + MAX_ERR;
+    els.winActions.innerHTML = '';
+    if (!last) {
+      var nx = document.createElement('button');
+      nx.className = 'btn btn-primary'; nx.type = 'button';
+      nx.textContent = '▶ Sang Màn ' + (level + 2);
+      nx.addEventListener('click', function () { loadLevel(level + 1); });
+      els.winActions.appendChild(nx);
+    } else {
+      var again = document.createElement('button');
+      again.className = 'btn btn-primary'; again.type = 'button';
+      again.textContent = '↻ Chơi lại từ Màn 1';
+      again.addEventListener('click', function () { loadLevel(0); });
+      els.winActions.appendChild(again);
+    }
+    var home = document.createElement('a');
+    home.className = 'btn'; home.href = '../index.html';
+    home.textContent = '🏠 Về Trang Chủ';
+    els.winActions.appendChild(home);
+    openModal(els.winBack);
+  }
+
+  /* ==================================================================
+     7. ĐỒNG HỒ / HIỆU ỨNG / MODAL
+     ================================================================== */
+  function fmt(ms) {
+    var s = Math.floor(ms / 1000), m = Math.floor(s / 60);
+    s = s % 60;
+    return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  }
+  function startTimer() {
+    if (timer.running || done) return;
+    timer.running = true;
+    timer.t0 = Date.now() - timer.elapsed;
+    timer.id = setInterval(function () {
+      timer.elapsed = Date.now() - timer.t0;
+      els.statTime.textContent = fmt(timer.elapsed);
+    }, 250);
+  }
+  function stopTimer() {
+    timer.running = false;
+    if (timer.id) { clearInterval(timer.id); timer.id = null; }
+  }
+  function resetTimer() { stopTimer(); timer.elapsed = 0; els.statTime.textContent = '00:00'; }
+
+  function toast(msg, kind) {
+    var t = document.createElement('div');
+    t.className = 'toast ' + (kind || '');
+    t.textContent = msg;
+    els.toasts.appendChild(t);
+    setTimeout(function () {
+      t.classList.add('out');
+      setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 320);
+    }, 1800);
+  }
+
+  function confetti() {
+    var host = document.createElement('div');
+    host.className = 'confetti';
+    var colors = ['#c4703f', '#e0894f', '#ffd23f', '#8a4a2a', '#ffffff', '#d8552f'];
+    for (var i = 0; i < 70; i++) {
+      var el = document.createElement('div');
+      el.className = 'cf';
+      el.style.left = (Math.random() * 100) + '%';
+      el.style.background = colors[i % colors.length];
+      el.style.animationDuration = (2.2 + Math.random() * 1.8) + 's';
+      el.style.animationDelay = (Math.random() * 0.7) + 's';
+      host.appendChild(el);
+    }
+    document.body.appendChild(host);
+    setTimeout(function () { if (host.parentNode) host.parentNode.removeChild(host); }, 5200);
+  }
+
+  function openModal(m) { m.classList.add('show'); }
+  function closeModal(m) { m.classList.remove('show'); }
+
+  /* ==================================================================
+     8. KHỞI ĐỘNG
+     ================================================================== */
+  function init() {
+    ['grid', 'picker', 'statLevel', 'statTime', 'statErr', 'toasts',
+     'btnHelp', 'btnReset', 'btnNote', 'btnErase',
+     'winBack', 'winTitle', 'winMsg', 'winStats', 'winActions',
+     'failBack', 'failRetry', 'helpBack', 'helpClose'].forEach(function (id) {
+      els[id] = document.getElementById(id);
+    });
+
+    build();
+    loadLevel(0);
+
+    els.grid.addEventListener('click', function (e) {
+      var c = e.target.closest('.cell');
+      if (!c) return;
+      selectCell(+c.dataset.i);
+    });
+
+    els.picker.addEventListener('click', function (e) {
+      var b = e.target.closest('.pick');
+      if (!b) return;
+      var v = +b.dataset.v;
+      pickValue = v;
+      place(v);
+      renderPicker();
+    });
+
+    els.btnNote.addEventListener('click', function () { noteMode = !noteMode; renderHud(); });
+    els.btnErase.addEventListener('click', erase);
+    els.btnReset.addEventListener('click', resetLevel);
+    els.failRetry.addEventListener('click', resetLevel);
+    els.btnHelp.addEventListener('click', function () { openModal(els.helpBack); });
+    els.helpClose.addEventListener('click', function () { closeModal(els.helpBack); });
+    els.helpBack.addEventListener('click', function (e) {
+      if (e.target === els.helpBack) closeModal(els.helpBack);
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (els.helpBack.classList.contains('show')) { if (e.key === 'Escape') closeModal(els.helpBack); return; }
+      if (done || selected < 0) return;
+      if (e.key >= '1' && e.key <= '9') { place(+e.key); renderPicker(); return; }
+      if (e.key === 'Backspace' || e.key === 'Delete') { e.preventDefault(); erase(); return; }
+      var r = rowOf(selected), c = colOf(selected);
+      if (e.key === 'ArrowUp' && r > 0) { e.preventDefault(); selectCell(idx(r - 1, c)); }
+      else if (e.key === 'ArrowDown' && r < 8) { e.preventDefault(); selectCell(idx(r + 1, c)); }
+      else if (e.key === 'ArrowLeft' && c > 0) { e.preventDefault(); selectCell(idx(r, c - 1)); }
+      else if (e.key === 'ArrowRight' && c < 8) { e.preventDefault(); selectCell(idx(r, c + 1)); }
+    });
+
+    // API cho kiểm thử tự động
+    window.__sudoku = {
+      get level() { return level; },
+      get errors() { return errors; },
+      get done() { return done; },
+      get value() { return value; },
+      get notes() { return notes; },
+      get given() { return given; },
+      get solution() { return solution; },
+      get noteMode() { return noteMode; },
+      cells: function () { return cells; },
+      select: selectCell,
+      place: place,
+      erase: erase,
+      load: loadLevel,
+      reset: resetLevel,
+      elapsed: function () { return timer.elapsed; },
+      toggleNote: function () { noteMode = !noteMode; renderHud(); }
+    };
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>
+</body>
+</html>

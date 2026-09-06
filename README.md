@@ -9,6 +9,7 @@ index.html              Trang chủ — lưới ô vuông, mỗi ô là một tr
 assets/shell.css        Style dùng chung (nền, nút, modal, toast)
 dua-linh-sang-song/     Trò chơi 1 — Đưa Lính Sang Sông
 manh-ghep-vo-cuc/       Trò chơi 2 — Mảnh Ghép Vô Cực
+thien-nien-su-sudoku/   Trò chơi 3 — Thiên Niên Sử Sudoku (kèm img/1..9.png)
 vercel.json             cleanUrls
 ```
 
@@ -50,6 +51,18 @@ Kết thúc: cả 4 người lính ở vạch 0, năng lượng 0/0/0/0.
   Có thêm ba nút Quay trái / Lật mặt / Quay phải.
 - Chỉ phân biệt được bằng **hình dạng đường viền** — mọi mảnh cùng một màu, không hoa văn.
 - Có đồng hồ tính giờ; nút Chơi lại xáo lại toàn bộ và đưa mảnh ra ngoài khung.
+
+## Thiên Niên Sử Sudoku — luật
+
+- Sudoku 9×9 thường lệ, nhưng thay chữ số 1–9 bằng **9 hiện vật gốm**.
+- Chọn ô rồi chạm hiện vật ở dải dưới để điền (hoặc gõ phím 1–9).
+- Chạm ô đã điền: ô đó và mọi ô **cùng hiện vật** sáng lên; hàng, cột,
+  khu 3×3 của ô đang chọn được làm mờ.
+- **Ghi chú**: hiện vật thu nhỏ nằm quanh mép ô, chừa trống vùng giữa.
+- Điền sai → ô **viền đỏ**; nút **Xóa ô** để bỏ. Sai **3 lần** thì màn
+  chơi được đặt lại từ đầu.
+- 3 màn, đi lần lượt: xong màn này mới sang màn sau, không có bảng chọn màn.
+- Đề bài 3 màn đọc từ `Màn 1/2/3.jpg`; cả ba đã kiểm tra là có **lời giải duy nhất**.
 
 ## Thêm trò chơi mới
 

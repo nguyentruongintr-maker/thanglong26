@@ -770,11 +770,76 @@
   function bringToTop(p) { layers.top.appendChild(p.g); }
   function sendBack(p) { layers.pieces.appendChild(p.g); }
 
+  // Kéo thả: nghe trên WINDOW trong suốt thao tác kéo.
+  //
+  // Trước đây pointermove/pointerup gắn thẳng vào từng mảnh nên bị đứt giữa chừng:
+  //   - bringToTop() đổi cha phần tử ngay ở cú move đầu, làm mất pointer capture;
+  //   - sau đó sự kiện đi tới phần tử NẰM DƯỚI con trỏ, mà con trỏ thì thường
+  //     rời khỏi hình mảnh (mảnh có nhiều khe lõm, hoặc bị nam châm giữ lại một
+  //     chỗ / bị kẹp ở mép trong khi con trỏ vẫn đi tiếp).
+  // Nghe trên window thì kéo luôn theo con trỏ, đi qua mảnh khác hay ra ngoài
+  // khung đều không đứt.
+  function onDragMove(e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    var p = drag.p;
+    var dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+    if (!drag.moved && Math.sqrt(dx * dx + dy * dy) > 6) {
+      drag.moved = true;
+      if (p.placed) { p.placed = false; applySeat(p); renderHud(); }
+      p.g.classList.add('dragging');
+      bringToTop(p);
+    }
+    if (!drag.moved) return;
+    e.preventDefault();
+
+    var s = toScene(e);
+    p.x = s.x + drag.offX; p.y = s.y + drag.offY;
+    clampPos(p);
+
+    // nam châm: nếu vừa khít thì kéo hẳn vào ô
+    var slot = nearestSlot(p);
+    if (slot !== null && fits(p, slot)) {
+      var t = slotPos(slot);
+      p.x = t.x; p.y = t.y;
+      clearWarn(p);
+    } else if (slot !== null) {
+      showWarn(p, slot);
+    } else {
+      clearWarn(p);
+    }
+    applyPos(p);
+  }
+
+  function onDragEnd(e) {
+    if (!drag) return;
+    if (e && e.pointerId !== undefined && e.pointerId !== drag.id) return;
+    stopDragListening();
+    var p = drag.p, wasMoved = drag.moved;
+    drag = null;
+    p.g.classList.remove('dragging');
+    if (wasMoved) trySettle(p);
+    // một cú chạm chỉ để chọn mảnh; xoay/lật đều qua ba nút bên dưới
+  }
+
+  function startDragListening() {
+    window.addEventListener('pointermove', onDragMove, { passive: false });
+    window.addEventListener('pointerup', onDragEnd);
+    window.addEventListener('pointercancel', onDragEnd);
+    window.addEventListener('blur', onDragEnd);
+  }
+  function stopDragListening() {
+    window.removeEventListener('pointermove', onDragMove, { passive: false });
+    window.removeEventListener('pointerup', onDragEnd);
+    window.removeEventListener('pointercancel', onDragEnd);
+    window.removeEventListener('blur', onDragEnd);
+  }
+
   function attachHandlers(p) {
     p.g.addEventListener('pointerdown', function (e) {
       if (won || introOpen()) return;
+      if (drag) onDragEnd(null);          // dọn nốt thao tác kéo còn dở
       e.preventDefault();
-      e.stopPropagation();           // đừng để nền bàn hiểu nhầm là chạm vào ô trống
+      e.stopPropagation();                // đừng để nền bàn hiểu nhầm là chạm chỗ trống
       startTimer();
       select(p);
       var s = toScene(e);
@@ -784,48 +849,8 @@
         sx: e.clientX, sy: e.clientY,
         moved: false
       };
-      try { p.g.setPointerCapture(e.pointerId); } catch (err) {}
+      startDragListening();
     });
-
-    p.g.addEventListener('pointermove', function (e) {
-      if (!drag || drag.p !== p || e.pointerId !== drag.id) return;
-      var dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
-      if (!drag.moved && Math.sqrt(dx * dx + dy * dy) > 6) {
-        drag.moved = true;
-        if (p.placed) { p.placed = false; applySeat(p); renderHud(); }
-        p.g.classList.add('dragging');
-        bringToTop(p);
-      }
-      if (!drag.moved) return;
-      var s = toScene(e);
-      p.x = s.x + drag.offX; p.y = s.y + drag.offY;
-      clampPos(p);
-
-      // nam châm: nếu vừa khít thì kéo hẳn vào ô
-      var slot = nearestSlot(p);
-      if (slot !== null && fits(p, slot)) {
-        var t = slotPos(slot);
-        p.x = t.x; p.y = t.y;
-        clearWarn(p);
-      } else if (slot !== null) {
-        showWarn(p, slot);
-      } else {
-        clearWarn(p);
-      }
-      applyPos(p);
-    });
-
-    function endDrag(e) {
-      if (!drag || drag.p !== p) return;
-      try { p.g.releasePointerCapture(drag.id); } catch (err) {}
-      var wasMoved = drag.moved;
-      drag = null;
-      p.g.classList.remove('dragging');
-      if (wasMoved) trySettle(p);
-      // khong con xoay/lat bang cham: mot cham chi de chon manh
-    }
-    p.g.addEventListener('pointerup', endDrag);
-    p.g.addEventListener('pointercancel', endDrag);
   }
 
   // Cham vao cho trong ngoai ban thi bo chon. Moi thao tac xoay / lat

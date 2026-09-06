@@ -1,0 +1,897 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ký Ức Di Sản — Thăng Long 26</title>
+<meta name="description" content="Trò chơi lật mảnh ghép trí nhớ với 16 hiện vật di sản Thăng Long.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%83%8F%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/shell.css">
+<style>
+:root{
+  /* yc 10: bảng màu cam đất - lấy từ chính màu của các hiện vật */
+  --clay:#b05c33;
+  --clay-lo:#6d3317;
+  --clay-mid:#95492a;
+  --clay-hi:#d68d5a;
+  --clay-glow:#e8873f;
+  --paper-1:#fdf6ea;
+  --paper-2:#f2e2cb;
+  --line:#e2d5c2;
+
+  --p1:#e8873f;   /* yc 13: người chơi 1 - cam đất */
+  --p2:#48c8f0;   /* yc 13: người chơi 2 - xanh */
+}
+
+/* ===================== Hàng công cụ trên bàn chơi ===================== */
+/* yc 9: đồng hồ ở chính giữa phía trên, giống Thiên Niên Sử Sudoku */
+.bhud{
+  display:flex; align-items:center; gap:10px;
+  margin:4px 0 10px;
+}
+.bhud .side{ flex:1 1 0; display:flex; gap:8px; align-items:center; min-width:0 }
+.bhud .side.right{ justify-content:flex-end }
+.clock{
+  font-size:17px; font-weight:900; color:var(--accent);
+  font-variant-numeric:tabular-nums; letter-spacing:.5px; white-space:nowrap;
+}
+.left-count{ font-size:13px; font-weight:800; color:var(--muted); white-space:nowrap }
+.left-count b{ color:var(--accent) }
+
+/* yc 12: nút đổi chế độ ở góc trên bên trái */
+.modebtn{
+  appearance:none;
+  display:inline-flex; align-items:center; gap:7px;
+  height:40px; padding:0 13px;
+  border:1px solid var(--glass-line);
+  background:var(--glass);
+  color:var(--paper);
+  font-family:inherit; font-weight:800; font-size:13px; line-height:1;
+  border-radius:12px; cursor:pointer; white-space:nowrap;
+  transition:transform .14s ease, background .18s ease, opacity .18s ease;
+}
+.modebtn .ico{ font-size:16px }
+.modebtn:hover{ background:rgba(255,255,255,.18) }
+.modebtn:active{ transform:scale(.95) }
+.modebtn:focus-visible{ outline:3px solid var(--accent); outline-offset:2px }
+.modebtn[disabled]{ opacity:.42; cursor:not-allowed }
+.modebtn[disabled]:active{ transform:none }
+
+/* ===================== Bàn chơi ===================== */
+.boardcol{ width:100%; margin:0 auto }
+.board{
+  /* --ar do JS đặt = (cột × 0.8) / hàng, nhờ vậy bàn 6×8, 7×8 hay 8×8
+     đều co lại vừa màn hình, mảnh ghép không bị bóp méo hay vỡ bàn */
+  width:max(272px, min(100%, 860px, calc((100dvh - 268px) * var(--ar,1))));
+  aspect-ratio:var(--ar,1);
+  margin:0 auto;
+  padding:clamp(6px,1.2vw,11px);
+  background:
+    linear-gradient(155deg,#7d3f22,#5d2c15 55%,#48210f);
+  background-clip:padding-box;
+  border:clamp(5px,1vw,8px) solid var(--clay);
+  box-shadow:
+    0 9px 0 var(--clay-lo),
+    0 22px 38px rgba(4,10,18,.55),
+    inset 0 0 0 2px rgba(255,222,190,.35),
+    inset 0 0 40px rgba(0,0,0,.45);
+  touch-action:manipulation;
+  user-select:none;
+  -webkit-user-select:none;
+}
+.grid{
+  width:100%; height:100%;
+  display:grid;
+  grid-template-columns:repeat(var(--cols,8),minmax(0,1fr));
+  grid-template-rows:repeat(var(--rows,8),minmax(0,1fr));
+  gap:clamp(3px,.75vw,7px);
+}
+
+/* ===================== Mảnh ghép ===================== */
+/* yc 5: mảnh ghép hình chữ nhật (đứng, tỉ lệ 4:5) */
+.card{
+  position:relative;
+  appearance:none; border:0; padding:0; margin:0;
+  background:transparent;
+  perspective:800px;
+  cursor:pointer;
+  min-width:0; min-height:0;
+  transform-origin:50% 60%;
+}
+.card:focus-visible{ outline:3px solid var(--accent); outline-offset:2px; border-radius:8px }
+.card[disabled]{ cursor:default }
+
+.inner{
+  position:absolute; inset:0;
+  transform-style:preserve-3d;
+  transition:transform .45s cubic-bezier(.35,1.15,.4,1);
+}
+.card.up .inner{ transform:rotateY(180deg) }
+
+.face{
+  position:absolute; inset:0;
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+  border-radius:clamp(5px,1.1vw,10px);
+  display:grid; place-items:center;
+  overflow:hidden;
+}
+
+/* --- mặt úp: gốm nung màu cam đất, có hoa văn chìm --- */
+/* yc 11: chiều sâu bằng gờ nổi phía dưới + ánh sáng chếch phía trên */
+.back{
+  background:
+    radial-gradient(120% 90% at 30% 12%, rgba(255,224,196,.42), rgba(255,224,196,0) 58%),
+    linear-gradient(158deg,var(--clay-hi) 0%,var(--clay) 45%,var(--clay-mid) 100%);
+  box-shadow:
+    0 4px 0 var(--clay-lo),
+    0 7px 12px rgba(0,0,0,.42),
+    inset 0 2px 0 rgba(255,236,214,.55),
+    inset 0 -3px 6px rgba(78,32,10,.5);
+}
+/* hoa văn: khối trám lồng nhau gợi hình lá đề */
+.back::before{
+  content:"";
+  width:46%; aspect-ratio:1/1;
+  border:2px solid rgba(255,232,206,.5);
+  border-radius:22% 60% 22% 60%;
+  transform:rotate(45deg);
+  box-shadow:inset 0 0 0 4px rgba(109,51,23,.28);
+}
+.back::after{
+  content:"";
+  position:absolute;
+  width:14%; aspect-ratio:1/1;
+  border-radius:50%;
+  background:rgba(255,238,214,.62);
+  box-shadow:0 0 8px rgba(255,220,180,.5);
+}
+
+/* --- mặt ngửa: nền giấy ngà, hiện vật ở giữa --- */
+.front{
+  transform:rotateY(180deg);
+  background:
+    radial-gradient(120% 100% at 50% 0%, #fffaf1 0%, var(--paper-1) 45%, var(--paper-2) 100%);
+  box-shadow:
+    0 4px 0 #b98a5b,
+    0 7px 12px rgba(0,0,0,.4),
+    inset 0 0 0 2px rgba(176,92,51,.55),
+    inset 0 -4px 10px rgba(176,92,51,.18);
+}
+.front img{
+  width:84%; height:84%;
+  object-fit:contain;
+  pointer-events:none;
+  filter:drop-shadow(0 3px 4px rgba(96,52,24,.35));
+}
+
+/* yc 11: hiệu ứng lật lên - mảnh nhấc khỏi bàn rồi hạ xuống */
+@keyframes kd-lift{
+  0%{ transform:none }
+  45%{ transform:translateY(-9px) scale(1.07) }
+  100%{ transform:none }
+}
+.card.anim-flip{ animation:kd-lift .45s ease-out; z-index:5 }
+
+/* yc 11: hiệu ứng khớp cặp - nảy lên, vệt sáng quét qua, viền vàng đọng lại */
+@keyframes kd-lock{
+  0%{ transform:none }
+  35%{ transform:translateY(-12px) scale(1.13) }
+  62%{ transform:translateY(3px) scale(.96) }
+  100%{ transform:none }
+}
+.card.anim-match{ animation:kd-lock .6s cubic-bezier(.3,1.4,.5,1); z-index:6 }
+@keyframes kd-sheen{
+  from{ transform:rotateY(180deg) translateX(-160%) }
+  to{ transform:rotateY(180deg) translateX(160%) }
+}
+.card.anim-match .front::after{
+  content:"";
+  position:absolute; top:-20%; bottom:-20%; left:0; width:55%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.85),transparent);
+  animation:kd-sheen .6s ease-out;
+}
+/* yc 3: cặp đã khớp thì giữ nguyên trạng thái ngửa */
+.card.done{ cursor:default }
+.card.done .front{
+  box-shadow:
+    0 3px 0 #b98a5b,
+    0 5px 10px rgba(0,0,0,.32),
+    inset 0 0 0 3px var(--accent),
+    inset 0 0 22px rgba(255,210,63,.35);
+}
+.card.done .inner{ filter:saturate(1.06) }
+
+/* yc 11: hiệu ứng không khớp - rung rồi úp trở lại */
+@keyframes kd-nope{
+  0%,100%{ transform:translateX(0) rotate(0) }
+  18%{ transform:translateX(-7px) rotate(-2.5deg) }
+  38%{ transform:translateX(7px) rotate(2.5deg) }
+  58%{ transform:translateX(-5px) rotate(-1.5deg) }
+  78%{ transform:translateX(5px) rotate(1.5deg) }
+}
+.card.anim-bad{ animation:kd-nope .42s ease-in-out; z-index:5 }
+.card.anim-bad .front{
+  box-shadow:
+    0 4px 0 #8e3325,
+    0 7px 12px rgba(0,0,0,.4),
+    inset 0 0 0 3px var(--red),
+    inset 0 0 20px rgba(230,75,53,.3);
+}
+@keyframes kd-settle{
+  0%{ transform:translateY(-5px) scale(1.05) }
+  55%{ transform:translateY(0) scale(.93) }
+  100%{ transform:none }
+}
+.card.anim-down{ animation:kd-settle .46s cubic-bezier(.3,1.3,.5,1); z-index:4 }
+
+.card:not([disabled]):not(.up):hover .back{ transform:translateY(-3px) }
+.back{ transition:transform .16s ease }
+.card:not([disabled]):not(.up):active .back{ transform:translateY(1px) }
+
+/* ===================== Bảng điểm ===================== */
+/* yc 13: 1 người - điểm ở góc dưới bên trái;
+          2 người - hai bảng điểm ở hai bên */
+.scorebar{
+  display:flex; align-items:stretch; gap:10px;
+  width:max(272px, min(100%, 860px, calc((100dvh - 268px) * var(--ar,1))));
+  margin:14px auto 0;
+}
+.score{
+  flex:0 1 210px;
+  display:flex; align-items:center; gap:11px;
+  padding:10px 14px;
+  border-radius:16px;
+  border:1px solid var(--glass-line);
+  background:var(--glass);
+  box-shadow:var(--shadow);
+  transition:box-shadow .25s ease, transform .2s ease, border-color .25s ease;
+}
+.score.p2{ margin-left:auto; flex-direction:row-reverse; text-align:right }
+.score .avatar{
+  width:38px; height:38px; flex:none;
+  display:grid; place-items:center;
+  border-radius:12px; font-size:19px; line-height:1;
+  background:rgba(255,255,255,.12);
+}
+.score .meta{ min-width:0 }
+.score .who{ font-size:11.5px; font-weight:800; color:var(--muted); letter-spacing:.3px; white-space:nowrap }
+.score .pts{ font-size:25px; font-weight:900; line-height:1.1; font-variant-numeric:tabular-nums }
+.score.p1 .pts{ color:var(--p1) }
+.score.p1 .avatar{ background:rgba(232,135,63,.22) }
+.score.p2 .pts{ color:var(--p2) }
+.score.p2 .avatar{ background:rgba(72,200,240,.2) }
+
+/* yc 14: bảng điểm của người đang tới lượt sáng lên */
+.score.turn{ transform:translateY(-3px) }
+.score.p1.turn{ border-color:rgba(232,135,63,.85); box-shadow:0 0 0 2px rgba(232,135,63,.35), 0 10px 22px rgba(232,135,63,.22) }
+.score.p2.turn{ border-color:rgba(72,200,240,.85); box-shadow:0 0 0 2px rgba(72,200,240,.35), 0 10px 22px rgba(72,200,240,.22) }
+.score .turnchip{
+  font-size:10.5px; font-weight:900; letter-spacing:.5px;
+  padding:3px 8px; border-radius:999px; margin-top:3px;
+  display:none; width:max-content;
+}
+.score.p2 .turnchip{ margin-left:auto }
+.score.turn .turnchip{ display:block }
+.score.p1 .turnchip{ background:rgba(232,135,63,.9); color:#3a1c07 }
+.score.p2 .turnchip{ background:rgba(72,200,240,.9); color:#04283a }
+.score.hidden{ display:none }
+
+/* ===================== Cửa sổ chọn bàn ===================== */
+/* yc 4: chọn loại bàn ngay từ đầu rồi bấm Xác nhận */
+.sizes{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:16px 0 4px }
+.sizeopt{
+  appearance:none; cursor:pointer;
+  padding:14px 6px 12px;
+  border-radius:16px;
+  border:2px solid var(--glass-line);
+  background:rgba(255,255,255,.07);
+  color:var(--paper);
+  font-family:inherit;
+  transition:transform .16s ease, border-color .2s ease, background .2s ease;
+}
+.sizeopt .n{ display:block; font-size:21px; font-weight:900; letter-spacing:.4px }
+.sizeopt .d{ display:block; margin-top:4px; font-size:11.5px; font-weight:700; color:var(--muted); line-height:1.4 }
+.sizeopt:hover{ transform:translateY(-3px); background:rgba(255,255,255,.13) }
+.sizeopt[aria-checked="true"]{
+  border-color:var(--accent);
+  background:linear-gradient(160deg,rgba(255,210,63,.26),rgba(242,183,5,.12));
+  box-shadow:0 0 0 3px rgba(255,210,63,.22);
+}
+.sizeopt[aria-checked="true"] .d{ color:#ffe9a8 }
+
+.help-list{ text-align:left; margin:14px 0 0; padding-left:20px; color:#d5e9f7; font-size:14px; line-height:1.7 }
+.help-list li{ margin-bottom:6px }
+.help-list b{ color:var(--accent) }
+.trophy{ font-size:52px; line-height:1; animation:pop .6s cubic-bezier(.3,1.5,.5,1) both }
+@keyframes pop{ from{ transform:scale(.3) rotate(-20deg); opacity:0 } to{ transform:none; opacity:1 } }
+
+/* yc 15: bảng điểm hai người trong thông báo chiến thắng */
+.winscores{ display:flex; justify-content:center; gap:12px; margin:14px 0 2px; flex-wrap:wrap }
+.winscore{
+  min-width:120px; padding:11px 15px; border-radius:15px;
+  border:1px solid var(--glass-line); background:rgba(255,255,255,.08);
+}
+.winscore .who{ font-size:11.5px; font-weight:800; color:var(--muted) }
+.winscore .pts{ font-size:26px; font-weight:900; line-height:1.15; font-variant-numeric:tabular-nums }
+.winscore.p1 .pts{ color:var(--p1) }
+.winscore.p2 .pts{ color:var(--p2) }
+.winscore.champ{ border-color:var(--accent); box-shadow:0 0 0 2px rgba(255,210,63,.3) }
+
+.confetti{ position:fixed; inset:0; pointer-events:none; z-index:85; overflow:hidden }
+.cf{ position:absolute; width:9px; height:14px; border-radius:2px; animation:fall linear forwards }
+@keyframes fall{ 0%{ transform:translateY(-30px) rotate(0); opacity:1 } 100%{ transform:translateY(105vh) rotate(720deg); opacity:.9 } }
+
+@media (max-width:700px){
+  .topbar .lbl{ display:none }
+  .topbar .btn{ padding:0 13px }
+  .brand-text p{ display:none }
+  .modebtn .lbl{ display:none }
+  .modebtn{ padding:0 12px }
+  .score{ flex:0 1 150px; padding:8px 11px; gap:8px }
+  .score .avatar{ width:32px; height:32px; font-size:16px }
+  .score .pts{ font-size:21px }
+  .sizes{ grid-template-columns:1fr; gap:8px }
+  .sizeopt{ padding:11px 8px; display:flex; align-items:baseline; gap:10px; justify-content:center }
+  .sizeopt .d{ margin-top:0 }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">🃏</div>
+      <div class="brand-text">
+        <h1>Ký Ức Di Sản</h1>
+        <p>Lật mảnh ghép, tìm hiện vật giống nhau</p>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="btnHelp" type="button" aria-label="Hướng dẫn"><span class="ico">ℹ️</span><span class="lbl">Hướng dẫn</span></button>
+      <button class="btn btn-danger" id="btnReset" type="button" aria-label="Chơi lại"><span class="ico">↻</span><span class="lbl">Chơi lại</span></button>
+      <a class="btn" href="../index.html" aria-label="Về Trang Chủ"><span class="ico">🏠</span><span class="lbl">Về Trang Chủ</span></a>
+    </div>
+  </header>
+
+  <div class="boardcol" id="boardcol">
+
+    <div class="bhud">
+      <div class="side left">
+        <!-- yc 12: đổi chế độ 1 người / 2 người, khoá lại sau mảnh ghép đầu tiên -->
+        <button class="modebtn" id="btnMode" type="button" aria-label="Đổi chế độ chơi">
+          <span class="ico" id="modeIco">👤</span><span class="lbl" id="modeLbl">1 người chơi</span>
+        </button>
+      </div>
+      <!-- yc 9: bộ đếm thời gian -->
+      <div class="clock" id="statTime">00:00</div>
+      <div class="side right">
+        <span class="left-count">Đã lật: <b id="statLeft">0/0</b></span>
+      </div>
+    </div>
+
+    <div class="board" id="board">
+      <div class="grid" id="grid"></div>
+    </div>
+
+    <div class="scorebar" id="scorebar">
+      <div class="score p1 turn" id="scoreP1">
+        <div class="avatar">🧡</div>
+        <div class="meta">
+          <div class="who" id="whoP1">Điểm của bạn</div>
+          <div class="pts" id="ptsP1">0</div>
+          <div class="turnchip">ĐANG TỚI LƯỢT</div>
+        </div>
+      </div>
+      <div class="score p2 hidden" id="scoreP2">
+        <div class="avatar">💙</div>
+        <div class="meta">
+          <div class="who">Người chơi 2</div>
+          <div class="pts" id="ptsP2">0</div>
+          <div class="turnchip">ĐANG TỚI LƯỢT</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<div class="toast-host" id="toasts" aria-live="polite"></div>
+
+<!-- yc 4: chọn loại bàn -->
+<div class="modal-back" id="setupBack" role="dialog" aria-modal="true" aria-labelledby="setupTitle">
+  <div class="modal">
+    <div class="trophy">🏺</div>
+    <h2 id="setupTitle">Chọn loại bàn chơi</h2>
+    <p>Mỗi hiện vật xuất hiện ở 4 mảnh ghép, tức là 2 cặp giống nhau.</p>
+    <div class="sizes" id="sizes" role="radiogroup" aria-label="Loại bàn chơi">
+      <button class="sizeopt" type="button" role="radio" data-rows="6" aria-checked="false">
+        <span class="n">6 × 8</span><span class="d">48 mảnh · 12 hiện vật</span>
+      </button>
+      <button class="sizeopt" type="button" role="radio" data-rows="7" aria-checked="false">
+        <span class="n">7 × 8</span><span class="d">56 mảnh · 14 hiện vật</span>
+      </button>
+      <button class="sizeopt" type="button" role="radio" data-rows="8" aria-checked="true">
+        <span class="n">8 × 8</span><span class="d">64 mảnh · 16 hiện vật</span>
+      </button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="setupOk" type="button">✔ Xác nhận</button>
+    </div>
+  </div>
+</div>
+
+<!-- yc 15: thông báo chiến thắng -->
+<div class="modal-back" id="winBack" role="dialog" aria-modal="true" aria-labelledby="winTitle">
+  <div class="modal">
+    <div class="trophy">🏆</div>
+    <h2 id="winTitle">Chúc mừng!</h2>
+    <p id="winMsg"></p>
+    <div class="winscores" id="winScores"></div>
+    <p id="winStats" style="color:var(--accent);font-weight:800;margin-top:10px"></p>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="winAgain" type="button">↻ Chơi ván mới</button>
+      <a class="btn" href="../index.html">🏠 Về Trang Chủ</a>
+    </div>
+  </div>
+</div>
+
+<!-- Hướng dẫn -->
+<div class="modal-back" id="helpBack" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+  <div class="modal">
+    <h2 id="helpTitle">Hướng dẫn</h2>
+    <ol class="help-list">
+      <li>Chạm để lật một mảnh ghép, rồi lật tiếp mảnh thứ hai.</li>
+      <li>Hai mảnh <b>giống nhau</b> sẽ được giữ nguyên trạng thái ngửa và bạn được <b>2 điểm</b>.</li>
+      <li>Hai mảnh <b>khác nhau</b> sẽ tự úp trở lại — hãy nhớ vị trí của chúng.</li>
+      <li>Lật hết toàn bộ mảnh ghép là <b>thắng</b>.</li>
+      <li>Nút ở góc trên bên trái đổi giữa <b>1 người</b> và <b>2 người chơi</b>, chỉ dùng được <b>trước khi lật mảnh đầu tiên</b>.</li>
+      <li>Chế độ 2 người: khớp cặp thì được lật tiếp, không khớp thì <b>mất lượt</b>.</li>
+    </ol>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="helpClose" type="button">Đã hiểu</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ==================================================================
+     1. HẰNG SỐ
+     ================================================================== */
+  var COLS = 8;                 // yc 4: cả ba loại bàn đều có 8 cột
+  var FACES = 16;               // 16 ảnh hiện vật trong thư mục img/
+  var COPIES = 4;               // yc 8: mỗi hiện vật xuất hiện ở 4 mảnh = 2 cặp
+  var TILE_RATIO = 0.8;         // yc 5: mảnh ghép hình chữ nhật, rộng/cao = 4/5
+  var PTS_PER_MATCH = 2;        // yc 3: mỗi cặp khớp được 2 điểm
+
+  // nhịp hiệu ứng (ms)
+  var T_FLIP  = 450;            // lật một mảnh
+  var T_MATCH = 420;            // chờ trước khi chốt cặp khớp
+  var T_HOLD  = 780;            // chờ cho người chơi kịp nhìn khi không khớp
+  var T_SHAKE = 420;            // rung báo sai
+  var T_DOWN  = 460;            // úp trở lại
+
+  // Thư mục ảnh: tự suy ra từ địa chỉ trang để chạy đúng ở cả ba dạng
+  //   /ky-uc-di-san/            (có dấu / cuối)
+  //   /ky-uc-di-san             (Vercel cleanUrls, không có dấu /)
+  //   .../ky-uc-di-san/index.html   (mở thẳng bằng file://)
+  var IMG = (function () {
+    var b = location.pathname.replace(/[^\/]*\.[^\/]*$/, '');
+    if (b.charAt(b.length - 1) !== '/') b += '/';
+    return b + 'img/';
+  })();
+
+  /* ==================================================================
+     2. TRẠNG THÁI
+     ================================================================== */
+  var els = {}, cards = [];
+  var rows = 8, pickRows = 8;    // loại bàn đang chơi / đang chọn ở cửa sổ đầu
+  var deck = [];                 // deck[i] = số hiệu hiện vật của mảnh thứ i
+  var stateOf = [];              // 'down' | 'up' | 'done'
+  var opened = [];               // các mảnh đang ngửa chờ so khớp
+  var flippedCount = 0;          // số mảnh đã khớp vĩnh viễn
+  var twoPlayer = false;         // yc 12: chế độ chơi
+  var turn = 0;                  // yc 14: 0 = người chơi 1, 1 = người chơi 2
+  var score = [0, 0];
+  var started = false;           // đã lật mảnh nào chưa (khoá nút đổi chế độ)
+  var busy = false;              // đang chạy hiệu ứng, chặn thao tác
+  var done = false;
+  var timer = { t0: 0, elapsed: 0, running: false, id: null };
+  var pending = [];              // các setTimeout đang chờ, để dọn khi chơi lại
+
+  function later(fn, ms) { pending.push(setTimeout(fn, ms)); }
+  function clearPending() {
+    for (var i = 0; i < pending.length; i++) clearTimeout(pending[i]);
+    pending = [];
+  }
+
+  /* ==================================================================
+     3. SINH BÀN
+     ================================================================== */
+  function shuffle(a) {
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  // yc 7 + 8: bốc ngẫu nhiên (tổng số mảnh / 4) hiện vật, mỗi hiện vật 4 mảnh
+  function makeDeck(r) {
+    var total = r * COLS;
+    var need = total / COPIES;          // 48→12, 56→14, 64→16
+    var pool = [];
+    for (var v = 1; v <= FACES; v++) pool.push(v);
+    shuffle(pool);
+    var chosen = pool.slice(0, need);
+    var d = [];
+    for (var i = 0; i < chosen.length; i++) {
+      for (var k = 0; k < COPIES; k++) d.push(chosen[i]);
+    }
+    return shuffle(d);
+  }
+
+  /* ==================================================================
+     4. DỰNG BÀN
+     ================================================================== */
+  function build() {
+    var total = rows * COLS;
+    els.grid.innerHTML = '';
+    cards = [];
+    els.boardcol.style.setProperty('--cols', COLS);
+    els.boardcol.style.setProperty('--rows', rows);
+    // bàn co giãn theo cả bề ngang lẫn chiều cao màn hình
+    els.boardcol.style.setProperty('--ar', (COLS * TILE_RATIO / rows).toFixed(4));
+
+    for (var i = 0; i < total; i++) {
+      var b = document.createElement('button');
+      b.className = 'card';
+      b.type = 'button';
+      b.dataset.i = i;
+      b.setAttribute('aria-label', 'Mảnh ghép ' + (i + 1) + ' — đang úp');
+      b.innerHTML =
+        '<span class="inner">' +
+          '<span class="face back"></span>' +
+          '<span class="face front"><img src="' + IMG + deck[i] + '.png" alt="Hiện vật ' + deck[i] + '"></span>' +
+        '</span>';
+      els.grid.appendChild(b);
+      cards.push(b);
+    }
+  }
+
+  function newGame(r) {
+    clearPending();
+    rows = r;
+    deck = makeDeck(rows);
+    stateOf = [];
+    for (var i = 0; i < rows * COLS; i++) stateOf.push('down');
+    opened = [];
+    flippedCount = 0;
+    score = [0, 0];
+    turn = 0;
+    started = false;
+    busy = false;
+    done = false;
+    resetTimer();
+    build();
+    closeModal(els.winBack);
+    renderHud();
+    renderScores();
+  }
+
+  /* ==================================================================
+     5. VẼ PHẦN THÔNG TIN
+     ================================================================== */
+  function renderHud() {
+    els.statLeft.textContent = (flippedCount) + '/' + (rows * COLS);
+    els.modeIco.textContent = twoPlayer ? '👥' : '👤';
+    els.modeLbl.textContent = twoPlayer ? '2 người chơi' : '1 người chơi';
+    els.btnMode.disabled = started;
+    els.btnMode.title = started
+      ? 'Đã lật mảnh ghép nên không đổi chế độ được nữa'
+      : 'Chạm để đổi chế độ chơi';
+  }
+
+  // yc 13: 1 người thì chỉ có bảng điểm bên trái; 2 người thì thêm bảng bên phải
+  function renderScores() {
+    els.ptsP1.textContent = score[0];
+    els.ptsP2.textContent = score[1];
+    els.scoreP2.classList.toggle('hidden', !twoPlayer);
+    els.whoP1.textContent = twoPlayer ? 'Người chơi 1' : 'Điểm của bạn';
+    els.scoreP1.classList.toggle('turn', twoPlayer ? turn === 0 : false);
+    els.scoreP2.classList.toggle('turn', twoPlayer && turn === 1);
+  }
+
+  /* ==================================================================
+     6. LƯỢT CHƠI
+     ================================================================== */
+  function flip(i) {
+    if (done || busy) return;
+    if (stateOf[i] !== 'down') return;
+
+    if (!started) {                      // yc 12 + 14: người lật đầu tiên là người chơi 1
+      started = true;
+      turn = 0;
+      renderHud();
+      renderScores();
+    }
+    startTimer();
+
+    stateOf[i] = 'up';
+    opened.push(i);
+    var c = cards[i];
+    c.classList.add('up', 'anim-flip');
+    c.setAttribute('aria-label', 'Mảnh ghép ' + (i + 1) + ' — hiện vật ' + deck[i]);
+    later(function () { c.classList.remove('anim-flip'); }, T_FLIP);
+
+    if (opened.length === 2) resolvePair();
+  }
+
+  function resolvePair() {
+    busy = true;
+    var a = opened[0], b = opened[1];
+    opened = [];
+
+    if (deck[a] === deck[b]) {           // yc 3: khớp → giữ nguyên, cộng 2 điểm
+      later(function () { keepPair(a, b); }, T_MATCH);
+    } else {                             // yc 3: không khớp → úp cả hai trở lại
+      later(function () { rejectPair(a, b); }, T_HOLD);
+    }
+  }
+
+  function keepPair(a, b) {
+    stateOf[a] = stateOf[b] = 'done';
+    flippedCount += 2;
+    score[turn] += PTS_PER_MATCH;
+
+    [a, b].forEach(function (i) {
+      var c = cards[i];
+      c.classList.add('done', 'anim-match');
+      c.disabled = true;
+      later(function () { c.classList.remove('anim-match'); }, 620);
+    });
+
+    renderHud();
+    renderScores();
+    bumpScore(turn);
+
+    if (twoPlayer) toast('Khớp cặp! Người chơi ' + (turn + 1) + ' được +2 điểm và lật tiếp', 'good');
+    else toast('Khớp cặp! +2 điểm', 'good');
+
+    later(function () {
+      busy = false;
+      checkWin();
+    }, 300);
+  }
+
+  function rejectPair(a, b) {
+    var pair = [a, b];
+    pair.forEach(function (i) { cards[i].classList.add('anim-bad'); });
+
+    later(function () {
+      pair.forEach(function (i) {
+        var c = cards[i];
+        stateOf[i] = 'down';
+        c.classList.remove('anim-bad', 'up');
+        c.classList.add('anim-down');
+        c.setAttribute('aria-label', 'Mảnh ghép ' + (i + 1) + ' — đang úp');
+        later(function () { c.classList.remove('anim-down'); }, T_DOWN);
+      });
+
+      // yc 14: chỉ chế độ 2 người mới mất lượt và mới có thông báo
+      if (twoPlayer) {
+        var lost = turn + 1;
+        turn = 1 - turn;
+        renderScores();
+        toast('Không khớp! Người chơi ' + lost + ' mất lượt · Đến lượt Người chơi ' + (turn + 1), 'bad');
+      }
+
+      later(function () { busy = false; }, T_DOWN);
+    }, T_SHAKE);
+  }
+
+  function bumpScore(p) {
+    var el = p === 0 ? els.scoreP1 : els.scoreP2;
+    el.style.transition = 'none';
+    el.style.transform = 'scale(1.09)';
+    later(function () {
+      el.style.transition = '';
+      el.style.transform = '';
+    }, 130);
+  }
+
+  /* ==================================================================
+     7. KẾT THÚC VÁN
+     ================================================================== */
+  function checkWin() {
+    if (flippedCount < rows * COLS) return;
+    done = true;
+    stopTimer();
+    confetti();
+
+    var total = rows * COLS;
+    els.winScores.innerHTML = '';
+
+    if (!twoPlayer) {
+      els.winTitle.textContent = 'Chúc mừng!';
+      els.winMsg.textContent = 'Bạn đã lật hết ' + total + ' mảnh ghép của bàn ' + rows + '×' + COLS + '.';
+      els.winScores.innerHTML =
+        '<div class="winscore p1 champ"><div class="who">Điểm của bạn</div>' +
+        '<div class="pts">' + score[0] + '</div></div>';
+    } else {
+      // yc 15: nêu rõ ai thắng, rồi hiện điểm của cả hai người ngay bên dưới
+      var w = score[0] === score[1] ? -1 : (score[0] > score[1] ? 0 : 1);
+      els.winTitle.textContent = w < 0 ? 'Chúc mừng cả hai!' : 'Chúc mừng Người chơi ' + (w + 1) + '!';
+      els.winMsg.textContent = w < 0
+        ? 'Hai bên hoà nhau sau ' + total + ' mảnh ghép.'
+        : 'Người chơi ' + (w + 1) + ' thắng ván này với ' + score[w] + ' điểm.';
+      els.winScores.innerHTML =
+        '<div class="winscore p1' + (w === 0 || w < 0 ? ' champ' : '') + '">' +
+          '<div class="who">Người chơi 1</div><div class="pts">' + score[0] + '</div></div>' +
+        '<div class="winscore p2' + (w === 1 || w < 0 ? ' champ' : '') + '">' +
+          '<div class="who">Người chơi 2</div><div class="pts">' + score[1] + '</div></div>';
+    }
+
+    els.winStats.textContent = 'Thời gian: ' + fmt(timer.elapsed) + ' · Bàn ' + rows + '×' + COLS;
+    openModal(els.winBack);
+  }
+
+  /* ==================================================================
+     8. ĐỒNG HỒ / HIỆU ỨNG / MODAL
+     ================================================================== */
+  function fmt(ms) {
+    var s = Math.floor(ms / 1000), m = Math.floor(s / 60);
+    s = s % 60;
+    return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  }
+  function startTimer() {
+    if (timer.running || done) return;
+    timer.running = true;
+    timer.t0 = Date.now() - timer.elapsed;
+    timer.id = setInterval(function () {
+      timer.elapsed = Date.now() - timer.t0;
+      els.statTime.textContent = fmt(timer.elapsed);
+    }, 250);
+  }
+  function stopTimer() {
+    timer.running = false;
+    if (timer.id) { clearInterval(timer.id); timer.id = null; }
+  }
+  function resetTimer() { stopTimer(); timer.elapsed = 0; els.statTime.textContent = '00:00'; }
+
+  function toast(msg, kind) {
+    var t = document.createElement('div');
+    t.className = 'toast ' + (kind || '');
+    t.textContent = msg;
+    els.toasts.appendChild(t);
+    setTimeout(function () {
+      t.classList.add('out');
+      setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 320);
+    }, 1800);
+  }
+
+  function confetti() {
+    var host = document.createElement('div');
+    host.className = 'confetti';
+    var colors = ['#c4703f', '#e0894f', '#ffd23f', '#8a4a2a', '#ffffff', '#d8552f'];
+    for (var i = 0; i < 70; i++) {
+      var el = document.createElement('div');
+      el.className = 'cf';
+      el.style.left = (Math.random() * 100) + '%';
+      el.style.background = colors[i % colors.length];
+      el.style.animationDuration = (2.2 + Math.random() * 1.8) + 's';
+      el.style.animationDelay = (Math.random() * 0.7) + 's';
+      host.appendChild(el);
+    }
+    document.body.appendChild(host);
+    setTimeout(function () { if (host.parentNode) host.parentNode.removeChild(host); }, 5200);
+  }
+
+  function openModal(m) { m.classList.add('show'); }
+  function closeModal(m) { m.classList.remove('show'); }
+
+  function renderSizePick() {
+    var opts = els.sizes.querySelectorAll('.sizeopt');
+    for (var i = 0; i < opts.length; i++) {
+      opts[i].setAttribute('aria-checked', +opts[i].dataset.rows === pickRows ? 'true' : 'false');
+    }
+  }
+  function openSetup() {
+    clearPending();
+    stopTimer();
+    pickRows = rows;
+    renderSizePick();
+    closeModal(els.winBack);
+    openModal(els.setupBack);
+  }
+
+  /* ==================================================================
+     9. KHỞI ĐỘNG
+     ================================================================== */
+  function init() {
+    ['boardcol', 'board', 'grid', 'statTime', 'statLeft', 'toasts',
+     'btnHelp', 'btnReset', 'btnMode', 'modeIco', 'modeLbl',
+     'scorebar', 'scoreP1', 'scoreP2', 'ptsP1', 'ptsP2', 'whoP1',
+     'sizes', 'setupBack', 'setupOk',
+     'winBack', 'winTitle', 'winMsg', 'winScores', 'winStats', 'winAgain',
+     'helpBack', 'helpClose'].forEach(function (id) {
+      els[id] = document.getElementById(id);
+    });
+
+    newGame(rows);
+    openSetup();                       // yc 4: hỏi loại bàn ngay từ đầu
+
+    els.grid.addEventListener('click', function (e) {
+      var c = e.target.closest('.card');
+      if (!c || c.disabled) return;
+      flip(+c.dataset.i);
+    });
+
+    els.sizes.addEventListener('click', function (e) {
+      var o = e.target.closest('.sizeopt');
+      if (!o) return;
+      pickRows = +o.dataset.rows;
+      renderSizePick();
+    });
+
+    els.setupOk.addEventListener('click', function () {
+      closeModal(els.setupBack);
+      newGame(pickRows);
+      toast('Bàn ' + pickRows + '×' + COLS + ' đã sẵn sàng — chúc bạn chơi vui!', 'good');
+    });
+
+    // yc 12: đổi chế độ, chỉ khi chưa lật mảnh nào
+    els.btnMode.addEventListener('click', function () {
+      if (started) { toast('Đã bắt đầu ván nên không đổi chế độ được nữa', 'bad'); return; }
+      twoPlayer = !twoPlayer;
+      turn = 0;
+      score = [0, 0];
+      renderHud();
+      renderScores();
+      toast(twoPlayer ? 'Chế độ 2 người chơi' : 'Chế độ 1 người chơi');
+    });
+
+    els.btnReset.addEventListener('click', openSetup);
+    els.winAgain.addEventListener('click', openSetup);
+
+    els.btnHelp.addEventListener('click', function () { openModal(els.helpBack); });
+    els.helpClose.addEventListener('click', function () { closeModal(els.helpBack); });
+    els.helpBack.addEventListener('click', function (e) {
+      if (e.target === els.helpBack) closeModal(els.helpBack);
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && els.helpBack.classList.contains('show')) closeModal(els.helpBack);
+    });
+
+    // API cho kiểm thử tự động
+    window.__memory = {
+      get rows() { return rows; },
+      get cols() { return COLS; },
+      get deck() { return deck; },
+      get state() { return stateOf; },
+      get score() { return score; },
+      get turn() { return turn; },
+      get twoPlayer() { return twoPlayer; },
+      get started() { return started; },
+      get busy() { return busy; },
+      get done() { return done; },
+      get flipped() { return flippedCount; },
+      cards: function () { return cards; },
+      flip: flip,
+      newGame: newGame,
+      setMode: function (two) { twoPlayer = !!two; renderHud(); renderScores(); },
+      elapsed: function () { return timer.elapsed; }
+    };
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>
+</body>
+</html>

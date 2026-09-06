@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Vịt Con Vui Vẻ — Thăng Long 26</title>
-<meta name="description" content="Trò chơi giải đố năng lượng: đưa một chú vịt đi lấy lá cờ rồi quay về vạch xuất phát.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%A5%3C/text%3E%3C/svg%3E">
+<title>Đưa Lính Sang Sông — Thăng Long 26</title>
+<meta name="description" content="Trò chơi giải đố năng lượng: đưa một người lính đi lấy lá cờ rồi cả đội cùng quay về vạch xuất phát.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9A%A9%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="../assets/shell.css">
 <style>
 /* ===================== Ruler (0 · 25 · 50 · 75 · 100) ===================== */
@@ -364,9 +364,9 @@
 
   <header class="topbar">
     <div class="brand">
-      <div class="brand-mark">🐥</div>
+      <div class="brand-mark">🚩</div>
       <div class="brand-text">
-        <h1>Vịt Con Vui Vẻ</h1>
+        <h1>Đưa Lính Sang Sông</h1>
         <p>Lấy cờ rồi quay về vạch xuất phát</p>
       </div>
     </div>
@@ -392,12 +392,12 @@
   </div>
 
   <div class="panel actionbar">
-    <div class="who" id="who">Chạm vào một chú vịt để chọn</div>
+    <div class="who" id="who">Chạm vào một người lính để chọn</div>
     <div class="act-grid">
       <button class="btn act" id="actFwd" type="button" aria-label="Tiến một vạch"><span class="ico">←</span><span>Tiến</span></button>
       <button class="btn act" id="actBack" type="button" aria-label="Lùi một vạch"><span class="ico">→</span><span>Lùi</span></button>
-      <button class="btn act" id="actUp" type="button" aria-label="Chuyền 25 năng lượng cho vịt phía trên"><span class="ico">↑</span><span>Chuyền lên</span></button>
-      <button class="btn act" id="actDown" type="button" aria-label="Chuyền 25 năng lượng cho vịt phía dưới"><span class="ico">↓</span><span>Chuyền xuống</span></button>
+      <button class="btn act" id="actUp" type="button" aria-label="Chuyền 25 năng lượng cho người lính phía trên"><span class="ico">↑</span><span>Chuyền lên</span></button>
+      <button class="btn act" id="actDown" type="button" aria-label="Chuyền 25 năng lượng cho người lính phía dưới"><span class="ico">↓</span><span>Chuyền xuống</span></button>
     </div>
   </div>
 
@@ -409,7 +409,7 @@
   <div class="modal">
     <div class="trophy">🏆</div>
     <h2 id="winTitle">Chúc mừng!</h2>
-    <p>Cả bốn chú vịt đều đã rời vạch xuất phát, lá cờ 🚩 đã được mang về, và tất cả đã quay lại vạch xuất phát an toàn.</p>
+    <p>Cả bốn người lính đều đã rời vạch xuất phát, lá cờ 🚩 đã được mang về, và tất cả đã quay lại vạch xuất phát an toàn.</p>
     <p id="winStats" style="color:var(--accent);font-weight:800"></p>
     <div class="modal-actions">
       <button class="btn btn-primary" id="winReplay" type="button">↻ Chơi lại</button>
@@ -422,7 +422,7 @@
   <div class="modal">
     <div class="trophy">😵</div>
     <h2 id="stuckTitle">Hết năng lượng rồi!</h2>
-    <p>Không chú vịt nào còn đủ 25 năng lượng để đi tiếp hay chuyền. Thử lại với cách chia năng lượng khác nhé!</p>
+    <p>Không người lính nào còn đủ 25 năng lượng để đi tiếp hay chuyền. Thử lại với cách chia năng lượng khác nhé!</p>
     <div class="modal-actions">
       <button class="btn btn-primary" id="stuckReplay" type="button">↻ Chơi lại</button>
       <a class="btn" href="../index.html">🏠 Về Trang Chủ</a>
@@ -435,16 +435,16 @@
     <h2 id="rulesTitle">Luật chơi</h2>
     <ol class="rules-list">
       <li><b>Giành cờ và quay trở về.</b></li>
-      <li>Tất cả chú vịt cần <b>rời khỏi vạch xuất phát ít nhất 1 lần</b>.</li>
-      <li>Tất cả chú vịt cần <b>trở về vạch xuất phát</b> khi đã lấy được cờ.</li>
+      <li>Tất cả người lính cần <b>rời khỏi vạch xuất phát ít nhất 1 lần</b>.</li>
+      <li>Tất cả người lính cần <b>trở về vạch xuất phát</b> khi đã lấy được cờ.</li>
       <li>Mỗi lần di chuyển mất <b>25 năng lượng</b>.</li>
       <li>Có thể <b>chuyển năng lượng</b> cho nhau, mỗi lần <b>25 năng lượng</b>.</li>
-      <li>Vịt đã <b>đầy năng lượng</b> sẽ không thể nhận thêm.</li>
+      <li>Người lính đã <b>đầy năng lượng</b> sẽ không thể nhận thêm.</li>
     </ol>
     <p class="rules-note">
-      Lưu ý: chỉ chuyền được cho chú vịt ngay <b>trên</b> hoặc ngay <b>dưới</b> mình,
-      và <b>cả hai phải đang đứng cùng một vạch</b>. Chỉ chú vịt ở đúng hàng của lá cờ
-      mới ngậm được cờ.
+      Lưu ý: chỉ chuyền được cho người lính ngay <b>trên</b> hoặc ngay <b>dưới</b> mình,
+      và <b>cả hai phải đang đứng cùng một vạch</b>. Chỉ người lính ở đúng hàng của lá cờ
+      mới giành được cờ.
     </p>
     <div class="modal-actions">
       <button class="btn btn-primary" id="rulesClose" type="button">Đã hiểu</button>
@@ -457,7 +457,7 @@
   "use strict";
 
   /* ===================== Hằng số ===================== */
-  var ROWS = 4;          // 4 hàng vịt
+  var ROWS = 4;          // 4 hàng lính
   var COLS = 5;          // vạch 0 (xuất phát) .. vạch 4 (có cờ)
   var COST = 25;         // mỗi bước đi tốn 25
   var MAX  = 100;        // trần năng lượng
@@ -465,7 +465,7 @@
   var FLAG_COL = COLS - 1;
   var MOVE_MS = 470;     // khớp với transition của .duck
 
-  var NAMES = ["Vịt 1", "Vịt 2", "Vịt 3", "Vịt 4"];
+  var NAMES = ["Lính 1", "Lính 2", "Lính 3", "Lính 4"];
 
   // Toạ độ theo % của bảng. Vạch 0 ở bên phải, vạch 4 ở bên trái.
   function colX(c) { return 78 - c * 17; }
@@ -573,7 +573,7 @@
   function canTransfer(d, dr) {
     if (state.won) return { ok: false, why: "Ván chơi đã kết thúc." };
     var r = d.row + dr;
-    if (r < 0 || r > ROWS - 1) return { ok: false, why: "Không có chú vịt nào ở hướng này." };
+    if (r < 0 || r > ROWS - 1) return { ok: false, why: "Không có người lính nào ở hướng này." };
     var o = state.ducks[r];
     if (o.col !== d.col) return { ok: false, why: "Phải đứng cùng một vạch mới chuyền được năng lượng." };
     if (d.energy < COST) return { ok: false, why: NAMES[d.row] + " không đủ 25 năng lượng để chuyền." };
@@ -587,7 +587,7 @@
     return n;
   }
 
-  // Số vịt đã quay về vạch xuất phát (và đã từng rời vạch ít nhất một lần).
+  // Số lính đã quay về vạch xuất phát (và đã từng rời vạch ít nhất một lần).
   function homeCount() {
     var n = 0;
     for (var i = 0; i < ROWS; i++) if (state.ducks[i].hasLeft && state.ducks[i].col === 0) n++;
@@ -645,7 +645,7 @@
     els.buoy.innerHTML = flagSVG();
     board.insertBefore(els.buoy, keep);
 
-    // vịt
+    // lính
     ducksEl = [];
     for (i = 0; i < ROWS; i++) {
       var b = document.createElement("button");
@@ -713,7 +713,7 @@
   function renderActions() {
     var s = state.selected;
     if (s === null) {
-      els.who.textContent = "Chạm vào một chú vịt để chọn";
+      els.who.textContent = "Chạm vào một người lính để chọn";
       setAct(els.actFwd, false); setAct(els.actBack, false);
       setAct(els.actUp, false);  setAct(els.actDown, false);
       return;
@@ -829,12 +829,12 @@
       ducksEl[d.row].classList.remove("moving");
       ripple(d.col, d.row);
 
-      // ngậm cờ
+      // giành cờ
       if (!state.flagTaken && d.col === FLAG_COL && d.row === FLAG_ROW) {
         state.flagTaken = true;
         d.hasFlag = true;
         sparkle(FLAG_COL, FLAG_ROW);
-        toast("Ngậm được lá cờ rồi! 🚩 Giờ quay về vạch xuất phát nhé.", "good");
+        toast("Đã giành được lá cờ! 🚩 Giờ quay về vạch xuất phát nhé.", "good");
         render();
       }
 
@@ -868,7 +868,7 @@
   }
 
   function afterAction(d) {
-    // Thắng? Phải xét chú vịt đang giữ cờ, không chỉ chú vừa hành động —
+    // Thắng? Phải xét người lính đang giữ cờ, không chỉ chú vừa hành động —
     // người chơi có thể mang cờ về trước rồi mới đưa nốt các chú khác về.
     var c = carrier();
     if (!state.won && c && c.col === 0 && leftCount() === ROWS && homeCount() === ROWS) {
@@ -883,9 +883,9 @@
     // Nhắc việc còn thiếu, chỉ khi chính chú giữ cờ vừa về tới vạch xuất phát.
     if (!state.won && c && c.col === 0 && d === c) {
       if (leftCount() < ROWS) {
-        toast("Đã mang cờ về, nhưng vẫn còn vịt chưa rời vạch xuất phát!", "bad");
+        toast("Đã mang cờ về, nhưng vẫn còn lính chưa rời vạch xuất phát!", "bad");
       } else if (homeCount() < ROWS) {
-        toast("Đã có cờ! Giờ đưa nốt các chú vịt còn lại về vạch xuất phát.", "bad");
+        toast("Đã có cờ! Giờ đưa nốt những người lính còn lại về vạch xuất phát.", "bad");
       }
     }
     if (!state.won && isStuck()) {
@@ -906,7 +906,7 @@
     closeModal(els.stuckBack);
     build();
     render();
-    toast("Ván mới bắt đầu! 🐥", "good");
+    toast("Ván mới bắt đầu! 🚩", "good");
   }
 
   /* ===================== Khởi động ===================== */

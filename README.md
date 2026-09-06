@@ -7,7 +7,7 @@ Static site (no build step) hosting small browser games. Deployed free on Vercel
 ```
 index.html              Trang chủ — lưới ô vuông, mỗi ô là một trò chơi
 assets/shell.css        Style dùng chung (nền, nút, modal, toast)
-vit-con-vui-ve/         Trò chơi 1 — Vịt Con Vui Vẻ
+dua-linh-sang-song/     Trò chơi 1 — Đưa Lính Sang Sông
 vercel.json             cleanUrls
 ```
 
@@ -15,30 +15,30 @@ vercel.json             cleanUrls
 
 Mở thẳng `index.html` bằng trình duyệt — không cần server, không cần cài gì.
 
-## Vịt Con Vui Vẻ — luật
+## Đưa Lính Sang Sông — luật
 
-- 4 chú vịt ở vạch xuất phát (bên phải), mỗi chú 100 năng lượng.
+- 4 người lính ở vạch xuất phát (bên phải), mỗi người 100 năng lượng.
 - Ngoài vạch xuất phát còn 4 vạch. Lá cờ đỏ ở vạch 4 (trái nhất), **hàng thứ 2** từ trên xuống.
 - Mỗi bước đi (tiến/lùi) tốn 25 năng lượng.
-- Chuyền 25 năng lượng cho vịt ngay trên/dưới — **bắt buộc cùng một vạch**.
-- Vịt đang đủ 100 năng lượng không nhận chuyền được.
-- Chỉ vịt ở đúng hàng của cờ mới ngậm được cờ.
-- **Thắng:** lấy được cờ **và** cả 4 chú vịt đều đã rời vạch xuất phát ít nhất một lần
-  **và** cả 4 chú đều đã quay về vạch xuất phát.
+- Chuyền 25 năng lượng cho người lính ngay trên/dưới — **bắt buộc cùng một vạch**.
+- Người lính đang đủ 100 năng lượng không nhận chuyền được.
+- Chỉ người lính ở đúng hàng của cờ mới giành được cờ.
+- **Thắng:** lấy được cờ **và** cả 4 người lính đều đã rời vạch xuất phát ít nhất một lần
+  **và** cả 4 người đều đã quay về vạch xuất phát.
 
 ### Lời giải (16 nước, dùng đúng trọn 400 năng lượng)
 
 Tổng năng lượng 400 = đúng 16 nước đi. Lời giải **không được phí một nước nào**.
 
 ```
-D1 tiến · D4 tiến · D3 tiến · D4 chuyền lên D3 · D3 tiến
-D2 tiến · D1 chuyền xuống D2 · D2 tiến · D3 chuyền lên D2
-D2 tiến · D2 tiến (lấy cờ) · D2 lùi · D2 lùi
-D3 chuyền lên D2 · D2 lùi · D1 chuyền xuống D2 · D2 lùi (về đích, mang cờ)
-D1 lùi · D3 lùi · D4 chuyền lên D3 · D3 lùi · D4 lùi
+L1 tiến · L4 tiến · L3 tiến · L4 chuyền lên L3 · L3 tiến
+L2 tiến · L1 chuyền xuống L2 · L2 tiến · L3 chuyền lên L2
+L2 tiến · L2 tiến (lấy cờ) · L2 lùi · L2 lùi
+L3 chuyền lên L2 · L2 lùi · L1 chuyền xuống L2 · L2 lùi (về đích, mang cờ)
+L1 lùi · L3 lùi · L4 chuyền lên L3 · L3 lùi · L4 lùi
 ```
 
-Kết thúc: cả 4 chú ở vạch 0, năng lượng 0/0/0/0.
+Kết thúc: cả 4 người lính ở vạch 0, năng lượng 0/0/0/0.
 
 ## Thêm trò chơi mới
 

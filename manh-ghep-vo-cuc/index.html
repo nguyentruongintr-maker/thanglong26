@@ -14,11 +14,24 @@
   width:100%;
   border-radius:22px;
   overflow:hidden;
-  border:1px solid rgba(255,255,255,.16);
-  box-shadow:var(--shadow), inset 0 0 70px rgba(3,25,45,.5);
+  border:1px solid rgba(255,220,190,.14);
+  box-shadow:var(--shadow), inset 0 0 90px rgba(12,6,3,.75);
+  /* mat ban go am, co vet den roi vao giua noi dat ban ghep */
   background:
-    radial-gradient(70% 60% at 50% 18%, #3b4a5e 0%, #26313f 55%, #1a222c 100%);
+    radial-gradient(52% 58% at 50% 46%, rgba(255,214,168,.20) 0%, rgba(255,186,132,.07) 45%, transparent 74%),
+    radial-gradient(130% 105% at 50% -6%, #5a4231 0%, #3d2c20 42%, #241a13 100%);
   touch-action:none;
+}
+/* hat gom min phu len TOAN CANH (he toa do man hinh) nen khong bam theo
+   manh ghep -> khong lo huong hay vi tri dung */
+.stage::after{
+  content:"";
+  position:absolute; inset:0;
+  pointer-events:none;
+  opacity:.10;
+  mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:180px 180px;
 }
 #scene{
   display:block;
@@ -40,13 +53,38 @@
   stroke-width:1.6;
   stroke-linejoin:round;
 }
-.piece .side{ fill:#6b3018; transition:transform .24s cubic-bezier(.3,1.1,.4,1); }
+.piece .side{ fill:#7a3a1e; transition:transform .24s cubic-bezier(.3,1.1,.4,1); }
 /* Mảnh đã nằm trong khung thì phẳng liền với nhau, không còn bóng đổ riêng */
 .piece.placed .side{ display:none; }
-.piece.placed .face{ stroke:#7b4527; stroke-width:1.2; }
-.piece .gloss{ fill:none; stroke:rgba(255,236,214,.30); stroke-width:1.5; }
+.piece.placed .face{ stroke:#8a5230; stroke-width:1.1; }
 .piece .art{ transition:transform .24s cubic-bezier(.3,1.1,.4,1); }
+.piece .lift{ transition:transform .18s cubic-bezier(.3,1.3,.5,1); }
+
+/* Vat canh: mot vanh toi rong ben trong roi mot vanh sang sat mep.
+   Deu nhau moi huong nen khong he lo huong dung cua manh (yc 16). */
+.piece .bevelDark{
+  fill:none; stroke:#7d3c1e; stroke-width:11; opacity:.55;
+  stroke-linejoin:round;
+}
+.piece .bevelLite{
+  fill:none; stroke:#f0b184; stroke-width:3.4; opacity:.55;
+  stroke-linejoin:round;
+}
+.piece.placed .bevelLite{ opacity:.38 }
+.piece.placed .bevelDark{ opacity:.42 }
+
 .piece.sel .face{ stroke:#ffd23f; stroke-width:3; }
+
+/* nhac manh len khi dang keo */
+.piece.dragging .lift{ transform:scale(1.07) }
+.piece.dragging{ filter:url(#pcShadowUp) !important }
+
+/* chop sang khi manh hut vao khung */
+.piece.snapped .face{ animation:snapFlash .45s ease-out }
+@keyframes snapFlash{
+  0%{ fill:#ffdcb9 }
+  100%{ fill:url(#clay) }
+}
 .piece .bad{
   fill:none;
   stroke:#ff3b2f;
@@ -60,37 +98,42 @@
 .piece.snapping .art{ transition:transform .24s cubic-bezier(.3,1.1,.4,1); }
 
 /* khung bàn */
-.plate{ fill:url(#wood); stroke:#241812; stroke-width:2; }
-.plateSide{ fill:#1d130e; }
-.recess{ fill:#241811; }
-.recessEdge{ fill:none; stroke:#120b07; stroke-width:3; }
-.recessLip{ fill:none; stroke:rgba(255,220,190,.14); stroke-width:2; }
+.plate{ fill:url(#wood); stroke:#1d130d; stroke-width:2; }
+.plateSide{ fill:#150d08; }
+/* long khung khong con la mang den chet ma la nen dat am */
+.recess{ fill:#7c5136; }
+.recessEdge{ fill:none; stroke:#2a1a10; stroke-width:2.5; }
+.recessLip{ fill:none; stroke:rgba(255,224,192,.20); stroke-width:2; }
+/* tam lot hai ben cho manh chua ghep */
+.mat{
+  fill:rgba(24,14,9,.42);
+  stroke:rgba(255,214,176,.10);
+  stroke-width:1.5;
+}
 
 /* ===================== HUD ===================== */
-.hud{
-  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
-  margin:12px 0 10px; font-size:13px; font-weight:800;
+.bhud{ display:flex; align-items:center; gap:10px; margin:12px 0 8px }
+.bhud .side{ flex:1 1 0; display:flex; align-items:center; gap:8px; min-width:0 }
+.bhud .side.right{ justify-content:flex-end }
+.clock{
+  font-size:17px; font-weight:900; color:var(--accent);
+  font-variant-numeric:tabular-nums; letter-spacing:.5px; white-space:nowrap;
 }
-.hud .stat{
-  background:var(--glass); border:1px solid var(--glass-line);
-  border-radius:12px; padding:8px 12px; color:var(--paper);
-  flex:1 1 auto; text-align:center;
-}
-.hud .stat b{color:var(--accent)}
-.hud .stat.time b{font-variant-numeric:tabular-nums; letter-spacing:.5px}
+.errs{ font-size:13px; font-weight:800; color:var(--muted); white-space:nowrap }
+.errs b{ color:var(--accent) }
+.errs b.hot{ color:#7ee3a0 }
 
-.actionbar{ padding:12px; display:flex; flex-direction:column; gap:10px; }
-.actionbar .who{
-  font-size:13px; font-weight:800; color:var(--muted);
-  text-align:center; min-height:18px;
-}
-.actionbar .who b{color:var(--accent)}
-.act-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.actionbar{ padding:10px }
+.act-grid{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px }
 .act{
-  flex-direction:column; gap:3px; min-height:58px;
-  padding:8px 6px; font-size:12px; text-align:center; line-height:1.15;
+  min-height:62px;
+  padding:6px;
+  font-size:34px;
+  line-height:1;
+  color:#e08a4e;
+  text-shadow:0 2px 6px rgba(0,0,0,.45);
 }
-.act .ico{ font-size:19px; line-height:1 }
+.act:hover{ color:#f4a468 }
 
 .help-list{ text-align:left; margin:14px 0 0; padding-left:20px; color:#d5e9f7; font-size:14px; line-height:1.75 }
 .help-list li{ margin-bottom:6px }
@@ -137,21 +180,21 @@
     <svg id="scene" xmlns="http://www.w3.org/2000/svg" role="application" aria-label="Bàn ghép hình"></svg>
   </div>
 
-  <div class="hud">
-    <div class="stat time"><span class="k-long">Thời gian</span><span class="k-short">TG</span>: <b id="statTime">00:00</b></div>
-    <div class="stat"><span class="k-long">Đã ghép</span><span class="k-short">Ghép</span>: <b id="statDone">0/9</b></div>
-  </div>
-
-  <div class="panel actionbar">
-    <div class="who" id="who">Chạm vào một mảnh ghép để chọn</div>
-    <div class="act-grid">
-      <button class="btn act" id="actLeft"  type="button" aria-label="Quay trái 90 độ"><span class="ico">↺</span><span>Quay trái</span></button>
-      <button class="btn act" id="actFlip"  type="button" aria-label="Lật mảnh ghép"><span class="ico">⇋</span><span>Lật mặt</span></button>
-      <button class="btn act" id="actRight" type="button" aria-label="Quay phải 90 độ"><span class="ico">↻</span><span>Quay phải</span></button>
+  <div class="bhud">
+    <div class="side left"></div>
+    <div class="clock" id="statTime">00:00</div>
+    <div class="side right">
+      <span class="errs">Đã ghép: <b id="statDone">0/9</b></span>
     </div>
   </div>
 
-</div>
+  <div class="panel actionbar">
+    <div class="act-grid">
+      <button class="btn act" id="actLeft" type="button" aria-label="Quay trái 90 độ" title="Quay trái">↺</button>
+      <button class="btn act" id="actFlip" type="button" aria-label="Lật mặt" title="Lật mặt">⇋</button>
+      <button class="btn act" id="actRight" type="button" aria-label="Quay phải 90 độ" title="Quay phải">↻</button>
+    </div>
+  </div>
 
 <div class="toast-host" id="toasts" aria-live="polite"></div>
 
@@ -176,7 +219,7 @@
     <h2 id="introTitle">Mảnh Ghép Vô Cực</h2>
     <ol class="help-list intro-list">
       <li>Đưa <b>9 mảnh ghép</b> về đúng khung.</li>
-      <li><b>Ấn 1 lần</b> để quay phải, <b>ấn 2 lần</b> để lật.</li>
+      <li><b>Kéo</b> mảnh tới khung. Dùng ba nút ↺ ⇋ ↻ để quay và lật.</li>
     </ol>
     <div class="modal-actions">
       <button class="btn btn-primary" id="introOk" type="button">Xác nhận</button>
@@ -189,13 +232,10 @@
   <div class="modal">
     <h2 id="helpTitle">Hướng dẫn</h2>
     <ol class="help-list">
-      <li><b>Chạm lần đầu</b> vào một mảnh: chỉ để <b>chọn</b>, chưa xoay gì cả.</li>
-      <li>Khi mảnh đã được chọn: <b>chạm 1 lần</b> để quay <b>phải</b> 90°,
-          <b>chạm 2 lần liên tiếp</b> để <b>lật</b> mặt.</li>
-      <li>Muốn quay <b>trái</b> thì dùng nút <b>Quay trái</b> ở dưới.</li>
-      <li>Đặt mảnh theo hai cách: <b>kéo</b> mảnh tới chỗ muốn đặt,
-          hoặc <b>chọn mảnh rồi chạm vào vị trí trên bàn</b> để đưa mảnh tới đó.</li>
-      <li>Tới gần ô trống mà vừa khít thì mảnh <b>tự hút</b> vào.</li>
+      <li><b>Giữ chuột (hoặc ngón tay) và kéo</b> mảnh ghép tới chỗ muốn đặt.</li>
+      <li>Tới gần ô trống mà vừa khít thì mảnh <b>tự hút</b> vào khung.</li>
+      <li>Chạm vào một mảnh để <b>chọn</b> nó, rồi dùng ba nút ở dưới:
+          <b>↺</b> quay trái, <b>⇋</b> lật mặt, <b>↻</b> quay phải.</li>
       <li>Đặt sai thì các cạnh không khớp <b>hiện màu đỏ</b> và mảnh không bị hút vào.</li>
       <li>Chỉ có thể dựa vào <b>hình dạng đường viền</b> để ghép — các mảnh giống hệt nhau về màu.</li>
     </ol>
@@ -327,7 +367,8 @@
       var H_ = Math.max(3 * PSLOT, FRAME) + 40;
       var bx = 20 + trayW + gap, by = (H_ - FRAME) / 2;
       return { W: W, H: H_, boardX: bx + RIM, boardY: by + RIM, frameX: bx, frameY: by,
-               trayCols: 2, leftX: 20, rightX: bx + FRAME + gap, trayW: trayW, trayTop: (H_ - 3 * PSLOT) / 2 };
+               trayCols: 2, leftX: 20, rightX: bx + FRAME + gap, trayW: trayW,
+               trayTop: (H_ - 3 * PSLOT) / 2, trayH: 3 * PSLOT };
     },
     tall: function () {
       var trayW = PSLOT, gap = 20;
@@ -338,7 +379,7 @@
       var bx = 14 + trayW + gap, by = (H_ - FRAME) / 2;
       return { W: W, H: H_, boardX: bx + RIM, boardY: by + RIM, frameX: bx, frameY: by,
                trayCols: 1, leftX: 14, rightX: bx + FRAME + gap, trayW: trayW,
-               trayTop: (H_ - trayH) / 2, trayStep: step };
+               trayTop: (H_ - trayH) / 2, trayStep: step, trayH: trayH };
     }
   };
 
@@ -380,59 +421,118 @@
     svg.setAttribute('viewBox', '0 0 ' + L.W + ' ' + L.H);
     svg.innerHTML = '';
 
-    // --- defs: màu gốm nung, cố định theo màn hình nên xoay mảnh không đổi sắc ---
+    var sil = silhouette(0, 0);
+    var silAbs = translatePath(sil, L.boardX, L.boardY);
+
+    // --- defs ---
+    // Dai mau gom gan theo toa do MAN HINH: xoay hay lat manh khong doi sac do,
+    // nen khong lo huong dung (yeu cau 16 cua tro choi).
     var defs = makeSVG('defs');
     defs.innerHTML =
       '<linearGradient id="clay" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="' + L.H + '">' +
-        '<stop offset="0" stop-color="#c4703f"/>' +
-        '<stop offset="0.55" stop-color="#b05c33"/>' +
-        '<stop offset="1" stop-color="#9c4b28"/>' +
+        '<stop offset="0" stop-color="#d2794a"/>' +
+        '<stop offset="0.45" stop-color="#bd6438"/>' +
+        '<stop offset="1" stop-color="#9a4a27"/>' +
       '</linearGradient>' +
       '<linearGradient id="wood" gradientUnits="userSpaceOnUse" x1="0" y1="' + L.frameY + '" x2="0" y2="' + (L.frameY + FRAME) + '">' +
-        '<stop offset="0" stop-color="#4d3a2c"/>' +
-        '<stop offset="1" stop-color="#33261d"/>' +
+        '<stop offset="0" stop-color="#5b4433"/>' +
+        '<stop offset="0.5" stop-color="#463322"/>' +
+        '<stop offset="1" stop-color="#2f2118"/>' +
       '</linearGradient>' +
-      '<filter id="pcShadow" x="-30%" y="-30%" width="160%" height="170%">' +
-        '<feDropShadow dx="0" dy="7" stdDeviation="7" flood-color="#0b0805" flood-opacity="0.5"/>' +
+      '<linearGradient id="sheen" gradientUnits="objectBoundingBox" x1="0" y1="0" x2="1" y2="0">' +
+        '<stop offset="0" stop-color="#ffffff" stop-opacity="0"/>' +
+        '<stop offset="0.45" stop-color="#ffe9cf" stop-opacity="0.5"/>' +
+        '<stop offset="0.55" stop-color="#ffe9cf" stop-opacity="0.5"/>' +
+        '<stop offset="1" stop-color="#ffffff" stop-opacity="0"/>' +
+      '</linearGradient>' +
+      '<filter id="pcShadow" x="-40%" y="-40%" width="180%" height="190%">' +
+        '<feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="#140a05" flood-opacity="0.55"/>' +
+        '<feDropShadow dx="0" dy="10" stdDeviation="9" flood-color="#0d0704" flood-opacity="0.4"/>' +
       '</filter>' +
-      '<filter id="frShadow" x="-20%" y="-20%" width="140%" height="150%">' +
-        '<feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#070a0f" flood-opacity="0.62"/>' +
-      '</filter>';
+      '<filter id="pcShadowUp" x="-45%" y="-45%" width="190%" height="200%">' +
+        '<feDropShadow dx="0" dy="6" stdDeviation="4" flood-color="#140a05" flood-opacity="0.5"/>' +
+        '<feDropShadow dx="0" dy="22" stdDeviation="17" flood-color="#0d0704" flood-opacity="0.45"/>' +
+      '</filter>' +
+      '<filter id="frShadow" x="-25%" y="-25%" width="150%" height="160%">' +
+        '<feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#0a0603" flood-opacity="0.6"/>' +
+      '</filter>' +
+      '<filter id="blurIn" x="-30%" y="-30%" width="160%" height="160%">' +
+        '<feGaussianBlur stdDeviation="7"/>' +
+      '</filter>' +
+      '<clipPath id="holeClip"><path d="' + silAbs + '"/></clipPath>';
     svg.appendChild(defs);
+    layers.defs = defs;
 
-    // --- khung bàn ---
+    // --- hai tam lot hai ben cho manh chua ghep ---
+    var mp = 16;
+    [L.leftX, L.rightX].forEach(function (x) {
+      svg.appendChild(makeSVG('rect', {
+        x: x - mp, y: L.trayTop - mp,
+        width: L.trayW + 2 * mp, height: L.trayH + 2 * mp,
+        rx: 20, 'class': 'mat'
+      }));
+    });
+
+    // --- khung ban ---
     var gBoard = makeSVG('g', { filter: 'url(#frShadow)' });
-    var sil = silhouette(0, 0);
     var plateD =
       'M' + L.frameX + ' ' + (L.frameY + 18) +
       ' q0 -18 18 -18 h' + (FRAME - 36) + ' q18 0 18 18' +
       ' v' + (FRAME - 36) + ' q0 18 -18 18 h-' + (FRAME - 36) + ' q-18 0 -18 -18 Z';
 
-    // bề dày khung (khối đùn xuống dưới)
-    gBoard.appendChild(makeSVG('path', { d: plateD, class: 'plateSide', transform: 'translate(0,10)' }));
-    // lòng khung (phần lõm)
-    var gRec = makeSVG('g', { transform: 'translate(' + (L.boardX) + ',' + (L.boardY) + ')' });
-    gRec.appendChild(makeSVG('path', { d: sil, class: 'recess' }));
+    gBoard.appendChild(makeSVG('path', { d: plateD, 'class': 'plateSide', transform: 'translate(0,11)' }));
+
+    // long khung: nen dat am
+    var gRec = makeSVG('g', { transform: 'translate(' + L.boardX + ',' + L.boardY + ')' });
+    gRec.appendChild(makeSVG('path', { d: sil, 'class': 'recess' }));
     gBoard.appendChild(gRec);
-    // mặt khung có lỗ khoét
-    var plate = makeSVG('path', {
-      d: plateD + ' ' + translatePath(sil, L.boardX, L.boardY),
-      class: 'plate', 'fill-rule': 'evenodd'
-    });
-    gBoard.appendChild(plate);
-    // viền lỗ tạo chiều sâu
+
+    // bong hat tu thanh khung vao long: lay phan NGOAI duong bao, dich xuong roi lam mo
+    var gIn = makeSVG('g', { 'clip-path': 'url(#holeClip)', 'pointer-events': 'none' });
+    var outside = 'M' + (L.frameX - 90) + ' ' + (L.frameY - 90) +
+                  ' h' + (FRAME + 180) + ' v' + (FRAME + 180) + ' h' + (-(FRAME + 180)) + ' Z ' + silAbs;
+    gIn.appendChild(makeSVG('path', {
+      d: outside, 'fill-rule': 'evenodd', fill: '#1d120b', opacity: 0.85,
+      transform: 'translate(0,9)', filter: 'url(#blurIn)'
+    }));
+    gBoard.appendChild(gIn);
+
+    gBoard.appendChild(makeSVG('path', {
+      d: plateD + ' ' + silAbs, 'class': 'plate', 'fill-rule': 'evenodd'
+    }));
     var gLip = makeSVG('g', { transform: 'translate(' + L.boardX + ',' + L.boardY + ')' });
-    gLip.appendChild(makeSVG('path', { d: sil, class: 'recessEdge' }));
-    var lip = makeSVG('path', { d: sil, class: 'recessLip', transform: 'translate(0,-2.5)' });
-    gLip.appendChild(lip);
+    gLip.appendChild(makeSVG('path', { d: sil, 'class': 'recessEdge' }));
+    gLip.appendChild(makeSVG('path', { d: sil, 'class': 'recessLip', transform: 'translate(0,-2.5)' }));
     gBoard.appendChild(gLip);
     svg.appendChild(gBoard);
 
     layers.pieces = makeSVG('g');
     svg.appendChild(layers.pieces);
-
     layers.top = makeSVG('g');
     svg.appendChild(layers.top);
+
+    // vet sang quet ngang khi ghep xong
+    layers.sheen = makeSVG('g', { 'clip-path': 'url(#holeClip)', 'pointer-events': 'none', opacity: 0 });
+    layers.sheen.appendChild(makeSVG('rect', {
+      x: L.boardX - BOARD * 0.6, y: L.boardY - 40,
+      width: BOARD * 0.5, height: BOARD + 80, fill: 'url(#sheen)'
+    }));
+    svg.appendChild(layers.sheen);
+  }
+
+  function playSheen() {
+    var g = layers.sheen;
+    if (!g) return;
+    g.style.transition = 'none';
+    g.setAttribute('transform', 'translate(0,0)');
+    g.setAttribute('opacity', 1);
+    void g.getBoundingClientRect();
+    g.style.transition = 'transform 1.2s cubic-bezier(.4,0,.3,1)';
+    g.setAttribute('transform', 'translate(' + (BOARD * 1.9) + ',0)');
+    setTimeout(function () {
+      g.style.transition = 'opacity .4s ease';
+      g.setAttribute('opacity', 0);
+    }, 1200);
   }
 
   // dịch một path (chỉ gồm M/C/Z tuyệt đối) đi (dx,dy)
@@ -453,25 +553,43 @@
     for (var r = 0; r < GRID; r++) {
       for (var c = 0; c < GRID; c++) {
         var geom = pieceGeom(r, c);
-        var g = makeSVG('g', { class: 'piece', filter: 'url(#pcShadow)' });
+        var id = r * GRID + c;
 
-        var gSideWrap = makeSVG('g', { transform: 'translate(0,8)' });
-        var sidePath = makeSVG('path', { d: geom.d, class: 'side' });
+        // clipPath de ve vien vat canh nam GON BEN TRONG hinh manh
+        var cp = makeSVG('clipPath', { id: 'pcClip' + id });
+        cp.appendChild(makeSVG('path', { d: geom.d }));
+        layers.defs.appendChild(cp);
+
+        var g = makeSVG('g', { 'class': 'piece', filter: 'url(#pcShadow)' });
+        var lift = makeSVG('g', { 'class': 'lift' });
+
+        // thanh ben mong tao be day
+        var gSideWrap = makeSVG('g', { transform: 'translate(0,5)' });
+        var sidePath = makeSVG('path', { d: geom.d, 'class': 'side' });
         gSideWrap.appendChild(sidePath);
-        g.appendChild(gSideWrap);
+        lift.appendChild(gSideWrap);
 
-        var art = makeSVG('g', { class: 'art' });
-        art.appendChild(makeSVG('path', { d: geom.d, class: 'face' }));
+        var art = makeSVG('g', { 'class': 'art' });
+        art.appendChild(makeSVG('path', { d: geom.d, 'class': 'face' }));
+
+        // vat canh: mot vanh toi rong ben trong, roi mot vanh sang sat mep.
+        // Deu nhau moi huong nen khong lo huong dung cua manh.
+        var bevel = makeSVG('g', { 'clip-path': 'url(#pcClip' + id + ')', 'pointer-events': 'none' });
+        bevel.appendChild(makeSVG('path', { d: geom.d, 'class': 'bevelDark' }));
+        bevel.appendChild(makeSVG('path', { d: geom.d, 'class': 'bevelLite' }));
+        art.appendChild(bevel);
+
         var bads = [];
         for (var j = 0; j < 4; j++) {
-          var bp = makeSVG('path', { d: geom.sides[j], class: 'bad' });
+          var bp = makeSVG('path', { d: geom.sides[j], 'class': 'bad' });
           art.appendChild(bp); bads.push(bp);
         }
-        g.appendChild(art);
+        lift.appendChild(art);
+        g.appendChild(lift);
 
         var p = {
-          id: r * GRID + c, row: r, col: c,
-          g: g, art: art, side: sidePath, sideWrap: gSideWrap, bads: bads,
+          id: id, row: r, col: c,
+          g: g, lift: lift, art: art, side: sidePath, sideWrap: gSideWrap, bads: bads,
           rot: 0, flip: false, placed: false, x: 0, y: 0
         };
         g.__piece = p;
@@ -562,6 +680,13 @@
     return !!els.introBack && els.introBack.classList.contains('show');
   }
 
+  function needPiece() {
+    if (won || introOpen()) return false;
+    if (!selected) { toast('Hãy chọn một mảnh ghép trước', 'bad'); return false; }
+    if (selected.placed) { toast('Mảnh này đã vào khung rồi', 'bad'); return false; }
+    return true;
+  }
+
   function select(p) {
     selected = p;
     for (var i = 0; i < pieces.length; i++) pieces[i].g.classList.toggle('sel', pieces[i] === p);
@@ -625,6 +750,7 @@
       var t = slotPos(slot);
       p.x = t.x; p.y = t.y; p.placed = true;
       applySeat(p); applyPos(p); clearWarn(p); sendBack(p);
+      flashSnap(p);
       renderHud(); checkWin();
       return true;
     }
@@ -632,6 +758,13 @@
     applyPos(p);
     if (slot !== null) showWarn(p, slot); else clearWarn(p);
     return false;
+  }
+
+  function flashSnap(p) {
+    p.g.classList.remove('snapped');
+    void p.g.getBoundingClientRect();
+    p.g.classList.add('snapped');
+    setTimeout(function () { p.g.classList.remove('snapped'); }, 460);
   }
 
   function bringToTop(p) { layers.top.appendChild(p.g); }
@@ -643,14 +776,13 @@
       e.preventDefault();
       e.stopPropagation();           // đừng để nền bàn hiểu nhầm là chạm vào ô trống
       startTimer();
-      var wasSelected = (selected === p);
       select(p);
       var s = toScene(e);
       drag = {
         p: p, id: e.pointerId,
         offX: p.x - s.x, offY: p.y - s.y,
         sx: e.clientX, sy: e.clientY,
-        moved: false, wasSelected: wasSelected
+        moved: false
       };
       try { p.g.setPointerCapture(e.pointerId); } catch (err) {}
     });
@@ -686,52 +818,22 @@
     function endDrag(e) {
       if (!drag || drag.p !== p) return;
       try { p.g.releasePointerCapture(drag.id); } catch (err) {}
-      var wasMoved = drag.moved, wasSelected = drag.wasSelected;
+      var wasMoved = drag.moved;
       drag = null;
       p.g.classList.remove('dragging');
-      if (wasMoved) { trySettle(p); return; }
-      handleTap(p, wasSelected);
+      if (wasMoved) trySettle(p);
+      // khong con xoay/lat bang cham: mot cham chi de chon manh
     }
     p.g.addEventListener('pointerup', endDrag);
     p.g.addEventListener('pointercancel', endDrag);
   }
 
-  // Lần chạm đầu chỉ để CHỌN (yc 1). Khi mảnh đã được chọn:
-  // chạm 1 lần = quay phải, chạm 2 lần liên tiếp = lật (yc 5, 7).
-  var tapTimer = null, tapPiece = null;
-  function cancelTap() {
-    if (tapTimer) { clearTimeout(tapTimer); tapTimer = null; }
-    tapPiece = null;
-  }
-  function handleTap(p, wasSelected) {
-    if (p.placed) return;              // mảnh đã ghép thì khoá xoay/lật
-    if (!wasSelected) { cancelTap(); return; }   // chạm đầu tiên: chỉ chọn
-    if (tapTimer && tapPiece === p) {
-      cancelTap();
-      flip(p);
-      return;
-    }
-    cancelTap();
-    tapPiece = p;
-    tapTimer = setTimeout(function () {
-      tapTimer = null; tapPiece = null;
-      rotate(p, +1);
-    }, 250);
-  }
-
-  // Chạm vào một chỗ trống trên bàn ghép để đưa mảnh đang chọn tới đó (yc 4)
+  // Cham vao cho trong ngoai ban thi bo chon. Moi thao tac xoay / lat
+  // deu chi thuc hien qua ba nut ben duoi (yeu cau moi).
   function onSceneTap(e) {
-    if (won || introOpen() || !selected || selected.placed) return;
-    var s = toScene(e);
-    var onBoard = s.x >= L.frameX && s.x <= L.frameX + FRAME &&
-                  s.y >= L.frameY && s.y <= L.frameY + FRAME;
-    if (!onBoard) { select(null); return; }      // chạm ra ngoài bàn = bỏ chọn
-    startTimer();
-    cancelTap();
-    var p = selected;
-    p.x = s.x; p.y = s.y;
-    bringToTop(p);
-    trySettle(p);
+    if (won || introOpen()) return;
+    if (e.target.closest && e.target.closest('.piece')) return;
+    select(null);
   }
 
   /* ==================================================================
@@ -764,11 +866,7 @@
 
   function renderHud() {
     els.statDone.textContent = placedCount() + '/9';
-    if (!selected) els.who.textContent = 'Chạm vào một mảnh ghép để chọn';
-    else els.who.innerHTML = 'Đang chọn: <b>Mảnh ' + (selected.id + 1) + '</b>' +
-      (selected.placed ? ' · đã ghép'
-        : ' · góc ' + (selected.rot * 90) + '°' + (selected.flip ? ' · mặt sau' : '') +
-          ' — chạm vào bàn để đặt');
+    els.statDone.classList.toggle('hot', placedCount() === 9);
   }
 
   function fmt(ms) {
@@ -798,6 +896,7 @@
     won = true;
     stopTimer();
     select(null);
+    playSheen();
     confetti();
     els.winStats.textContent = 'Thời gian: ' + fmt(timer.elapsed);
     openModal(els.winBack);
@@ -850,7 +949,7 @@
 
   function init() {
     svg = document.getElementById('scene');
-    ['statTime', 'statDone', 'who', 'toasts', 'btnReset', 'btnHelp',
+    ['statTime', 'statDone', 'toasts', 'btnReset', 'btnHelp',
      'actLeft', 'actFlip', 'actRight', 'winBack', 'winReplay', 'winStats',
      'helpBack', 'helpClose', 'introBack', 'introOk'].forEach(function (id) { els[id] = document.getElementById(id); });
 
@@ -863,9 +962,9 @@
     // "Chơi lại" (nút trên đầu hay trong hộp thắng) đều không hiện lại.
     openModal(els.introBack);
 
-    els.actLeft.addEventListener('click', function () { if (selected) rotate(selected, -1); renderHud(); });
-    els.actRight.addEventListener('click', function () { if (selected) rotate(selected, +1); renderHud(); });
-    els.actFlip.addEventListener('click', function () { if (selected) flip(selected); renderHud(); });
+    els.actLeft.addEventListener('click', function () { needPiece() && rotate(selected, -1); });
+    els.actRight.addEventListener('click', function () { needPiece() && rotate(selected, +1); });
+    els.actFlip.addEventListener('click', function () { needPiece() && flip(selected); });
     els.btnReset.addEventListener('click', reset);
     els.winReplay.addEventListener('click', reset);
     els.btnHelp.addEventListener('click', function () { openModal(els.helpBack); });

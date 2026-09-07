@@ -58,11 +58,14 @@
 .modebtn[disabled]:active{ transform:none }
 
 /* ===================== Bàn chơi ===================== */
-.boardcol{ width:100%; margin:0 auto }
-.board{
-  /* --ar do JS đặt = (cột × 0.8) / hàng, nhờ vậy bàn 6×8, 7×8 hay 8×8
+.boardcol{
+  width:100%; margin:0 auto;
+  /* --ar do JS đặt = (cột × TILE_RATIO) / hàng, nhờ vậy bàn 6×8, 7×8 hay 8×8
      đều co lại vừa màn hình, mảnh ghép không bị bóp méo hay vỡ bàn */
-  width:max(272px, min(100%, 860px, calc((100dvh - 268px) * var(--ar,1))));
+  --bw:max(272px, min(100%, 860px, calc((100dvh - 304px) * var(--ar,1))));
+}
+.board{
+  width:var(--bw);
   aspect-ratio:var(--ar,1);
   margin:0 auto;
   padding:clamp(6px,1.2vw,11px);
@@ -88,7 +91,7 @@
 }
 
 /* ===================== Mảnh ghép ===================== */
-/* yc 5: mảnh ghép hình chữ nhật (đứng, tỉ lệ 4:5) */
+/* yc 5: mảnh ghép hình chữ nhật đứng */
 .card{
   position:relative;
   appearance:none; border:0; padding:0; margin:0;
@@ -129,22 +132,12 @@
     inset 0 2px 0 rgba(255,236,214,.55),
     inset 0 -3px 6px rgba(78,32,10,.5);
 }
-/* hoa văn: khối trám lồng nhau gợi hình lá đề */
+/* hoa văn lá đề - mô-típ quen thuộc trên gạch ngói Thăng Long */
 .back::before{
   content:"";
-  width:46%; aspect-ratio:1/1;
-  border:2px solid rgba(255,232,206,.5);
-  border-radius:22% 60% 22% 60%;
-  transform:rotate(45deg);
-  box-shadow:inset 0 0 0 4px rgba(109,51,23,.28);
-}
-.back::after{
-  content:"";
-  position:absolute;
-  width:14%; aspect-ratio:1/1;
-  border-radius:50%;
-  background:rgba(255,238,214,.62);
-  box-shadow:0 0 8px rgba(255,220,180,.5);
+  width:66%; height:66%;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='none' stroke='%23ffe8ce' stroke-width='5' stroke-linejoin='round' opacity='.6'%3E%3Cpath d='M50 5C79 29 94 53 94 70c0 16-20 25-44 25S6 86 6 70C6 53 21 29 50 5Z'/%3E%3Cpath d='M50 26C67 41 77 55 77 66c0 10-12 16-27 16s-27-6-27-16c0-11 10-25 27-40Z'/%3E%3C/g%3E%3Ccircle cx='50' cy='64' r='10' fill='%23ffeed6' opacity='.66'/%3E%3C/svg%3E") center/contain no-repeat;
+  filter:drop-shadow(0 1.5px 0 rgba(109,51,23,.45));
 }
 
 /* --- mặt ngửa: nền giấy ngà, hiện vật ở giữa --- */
@@ -182,8 +175,8 @@
 }
 .card.anim-match{ animation:kd-lock .6s cubic-bezier(.3,1.4,.5,1); z-index:6 }
 @keyframes kd-sheen{
-  from{ transform:rotateY(180deg) translateX(-160%) }
-  to{ transform:rotateY(180deg) translateX(160%) }
+  from{ transform:translateX(-170%) skewX(-14deg) }
+  to{ transform:translateX(170%) skewX(-14deg) }
 }
 .card.anim-match .front::after{
   content:"";
@@ -200,7 +193,9 @@
     inset 0 0 0 3px var(--accent),
     inset 0 0 22px rgba(255,210,63,.35);
 }
-.card.done .inner{ filter:saturate(1.06) }
+/* Lưu ý: không đặt filter lên .inner — filter làm phẳng ngữ cảnh 3D
+   khiến backface-visibility hỏng và mặt ngửa bị che mất. */
+.card.done .front img{ filter:drop-shadow(0 3px 5px rgba(96,52,24,.42)) saturate(1.08) }
 
 /* yc 11: hiệu ứng không khớp - rung rồi úp trở lại */
 @keyframes kd-nope{
@@ -234,10 +229,11 @@
           2 người - hai bảng điểm ở hai bên */
 .scorebar{
   display:flex; align-items:stretch; gap:10px;
-  width:max(272px, min(100%, 860px, calc((100dvh - 268px) * var(--ar,1))));
+  width:var(--bw);
   margin:14px auto 0;
 }
 .score{
+  position:relative;
   flex:0 1 210px;
   display:flex; align-items:center; gap:11px;
   padding:10px 14px;
@@ -266,12 +262,16 @@
 .score.turn{ transform:translateY(-3px) }
 .score.p1.turn{ border-color:rgba(232,135,63,.85); box-shadow:0 0 0 2px rgba(232,135,63,.35), 0 10px 22px rgba(232,135,63,.22) }
 .score.p2.turn{ border-color:rgba(72,200,240,.85); box-shadow:0 0 0 2px rgba(72,200,240,.35), 0 10px 22px rgba(72,200,240,.22) }
+/* huy hiệu nổi lên mép trên nên không làm cao thêm bảng điểm,
+   nhờ vậy bàn chơi giữ nguyên kích thước khi đổi chế độ */
 .score .turnchip{
+  position:absolute; top:-10px; left:12px;
   font-size:10.5px; font-weight:900; letter-spacing:.5px;
-  padding:3px 8px; border-radius:999px; margin-top:3px;
+  padding:3px 9px; border-radius:999px;
   display:none; width:max-content;
+  box-shadow:0 3px 8px rgba(3,18,32,.45);
 }
-.score.p2 .turnchip{ margin-left:auto }
+.score.p2 .turnchip{ left:auto; right:12px }
 .score.turn .turnchip{ display:block }
 .score.p1 .turnchip{ background:rgba(232,135,63,.9); color:#3a1c07 }
 .score.p2 .turnchip{ background:rgba(72,200,240,.9); color:#04283a }
@@ -466,12 +466,12 @@
   var COLS = 8;                 // yc 4: cả ba loại bàn đều có 8 cột
   var FACES = 16;               // 16 ảnh hiện vật trong thư mục img/
   var COPIES = 4;               // yc 8: mỗi hiện vật xuất hiện ở 4 mảnh = 2 cặp
-  var TILE_RATIO = 0.8;         // yc 5: mảnh ghép hình chữ nhật, rộng/cao = 4/5
+  var TILE_RATIO = 0.85;        // yc 5: mảnh ghép hình chữ nhật đứng (rộng/cao)
   var PTS_PER_MATCH = 2;        // yc 3: mỗi cặp khớp được 2 điểm
 
   // nhịp hiệu ứng (ms)
   var T_FLIP  = 450;            // lật một mảnh
-  var T_MATCH = 420;            // chờ trước khi chốt cặp khớp
+  var T_MATCH = 420;            // chờ trước khi chạy hiệu ứng ăn mừng cặp khớp
   var T_HOLD  = 780;            // chờ cho người chơi kịp nhìn khi không khớp
   var T_SHAKE = 420;            // rung báo sai
   var T_DOWN  = 460;            // úp trở lại
@@ -610,6 +610,43 @@
   /* ==================================================================
      6. LƯỢT CHƠI
      ================================================================== */
+
+  // Mảnh đang ngửa hay đang úp, đọc từ ma trận thật sự đang hiển thị.
+  // m11 < 0 nghĩa là đã xoay quá 90 độ, tức đang thấy mặt hiện vật.
+  function isShowingFace(inner) {
+    var t = getComputedStyle(inner).transform;
+    if (!t || t === 'none') return false;
+    var n = t.slice(t.indexOf('(') + 1, -1).split(',');
+    return parseFloat(n[0]) < 0;
+  }
+
+  // Bàn 8×8 có tới 128 mặt ghép nằm trong ngữ cảnh 3D. Khi quá tải, trình duyệt
+  // có thể tạo transition rồi không bao giờ chạy nó (currentTime kẹt ở 0) —
+  // mảnh đã lật vẫn hiện mặt úp dù trạng thái và điểm đều đúng.
+  // Hàm này đối chiếu hình ảnh thật với trạng thái mong muốn và ép về đúng.
+  function settleFace(i) {
+    var c = cards[i];
+    if (!c) return;
+    var inner = c.querySelector('.inner');
+    if (!inner) return;
+    var want = c.classList.contains('up');
+    if (isShowingFace(inner) === want) return;   // hình ảnh đã đúng, không đụng vào
+
+    if (inner.getAnimations) {                   // thử đẩy transition về đích trước
+      var list = inner.getAnimations();
+      for (var k = 0; k < list.length; k++) {
+        try { list[k].finish(); } catch (e) { /* transition đã bị huỷ */ }
+      }
+      if (isShowingFace(inner) === want) return;
+    }
+
+    // chốt chặn cuối: tắt hiệu ứng, đặt thẳng trạng thái cuối rồi trả hiệu ứng lại
+    inner.style.transition = 'none';
+    inner.style.transform = want ? 'rotateY(180deg)' : 'none';
+    void inner.offsetWidth;
+    inner.style.transition = '';
+  }
+
   function flip(i) {
     if (done || busy) return;
     if (stateOf[i] !== 'down') return;
@@ -627,7 +664,10 @@
     var c = cards[i];
     c.classList.add('up', 'anim-flip');
     c.setAttribute('aria-label', 'Mảnh ghép ' + (i + 1) + ' — hiện vật ' + deck[i]);
-    later(function () { c.classList.remove('anim-flip'); }, T_FLIP);
+    later(function () {
+      c.classList.remove('anim-flip');
+      settleFace(i);                     // bảo đảm mảnh thật sự hiện mặt hiện vật
+    }, T_FLIP);
 
     if (opened.length === 2) resolvePair();
   }
@@ -638,12 +678,14 @@
     opened = [];
 
     if (deck[a] === deck[b]) {           // yc 3: khớp → giữ nguyên, cộng 2 điểm
-      later(function () { keepPair(a, b); }, T_MATCH);
+      keepPair(a, b);                    // chốt NGAY, không chờ hiệu ứng chạy xong
     } else {                             // yc 3: không khớp → úp cả hai trở lại
       later(function () { rejectPair(a, b); }, T_HOLD);
     }
   }
 
+  // yc: cặp khớp được cộng điểm và khoá mặt ngửa ngay tại thời điểm phát hiện.
+  // Không có khoảng chờ nào để một hẹn giờ khác kịp úp chúng xuống trở lại.
   function keepPair(a, b) {
     stateOf[a] = stateOf[b] = 'done';
     flippedCount += 2;
@@ -651,9 +693,8 @@
 
     [a, b].forEach(function (i) {
       var c = cards[i];
-      c.classList.add('done', 'anim-match');
+      c.classList.add('up', 'done');     // 'up' đã có sẵn, thêm lại cho chắc chắn
       c.disabled = true;
-      later(function () { c.classList.remove('anim-match'); }, 620);
     });
 
     renderHud();
@@ -663,24 +704,44 @@
     if (twoPlayer) toast('Khớp cặp! Người chơi ' + (turn + 1) + ' được +2 điểm và lật tiếp', 'good');
     else toast('Khớp cặp! +2 điểm', 'good');
 
+    // hiệu ứng ăn mừng chạy sau khi mảnh thứ hai lật xong — chỉ là trang trí,
+    // trạng thái đã chốt ở trên nên hiệu ứng có lỡ nhịp cũng không ảnh hưởng
+    later(function () {
+      [a, b].forEach(function (i) {
+        var c = cards[i];
+        c.classList.add('anim-match');
+        later(function () { c.classList.remove('anim-match'); }, 620);
+      });
+    }, T_MATCH);
+
     later(function () {
       busy = false;
+      // yc: cặp đã khớp phải luôn hiện mặt hiện vật, không được nằm úp
+      settleFace(a); settleFace(b);
       checkWin();
-    }, 300);
+    }, T_MATCH + 320);
   }
 
   function rejectPair(a, b) {
-    var pair = [a, b];
+    // yc: chỉ úp lại mảnh đang ngửa chờ so khớp.
+    // Mảnh đã khớp (state 'done') tuyệt đối không bị đụng tới.
+    var pair = [a, b].filter(function (i) { return stateOf[i] === 'up'; });
+    if (!pair.length) { busy = false; return; }
+
     pair.forEach(function (i) { cards[i].classList.add('anim-bad'); });
 
     later(function () {
       pair.forEach(function (i) {
         var c = cards[i];
+        if (stateOf[i] !== 'up') return;   // chốt chặn lần hai
         stateOf[i] = 'down';
         c.classList.remove('anim-bad', 'up');
         c.classList.add('anim-down');
         c.setAttribute('aria-label', 'Mảnh ghép ' + (i + 1) + ' — đang úp');
-        later(function () { c.classList.remove('anim-down'); }, T_DOWN);
+        later(function () {
+          c.classList.remove('anim-down');
+          settleFace(i);                 // bảo đảm mảnh thật sự trở về mặt úp
+        }, T_DOWN);
       });
 
       // yc 14: chỉ chế độ 2 người mới mất lượt và mới có thông báo

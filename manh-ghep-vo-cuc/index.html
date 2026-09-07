@@ -112,7 +112,7 @@
 }
 
 /* ===================== HUD ===================== */
-.bhud{ display:flex; align-items:center; gap:10px; margin:12px 0 8px }
+.bhud{ display:flex; align-items:center; gap:10px; margin:2px 0 10px }
 .bhud .side{ flex:1 1 0; display:flex; align-items:center; gap:8px; min-width:0 }
 .bhud .side.right{ justify-content:flex-end }
 .clock{
@@ -176,16 +176,17 @@
     </div>
   </header>
 
-  <div class="stage">
-    <svg id="scene" xmlns="http://www.w3.org/2000/svg" role="application" aria-label="Bàn ghép hình"></svg>
-  </div>
-
+  <!-- yc: hai bộ đếm nằm phía trên bàn chơi -->
   <div class="bhud">
     <div class="side left"></div>
     <div class="clock" id="statTime">00:00</div>
     <div class="side right">
       <span class="errs">Đã ghép: <b id="statDone">0/9</b></span>
     </div>
+  </div>
+
+  <div class="stage">
+    <svg id="scene" xmlns="http://www.w3.org/2000/svg" role="application" aria-label="Bàn ghép hình"></svg>
   </div>
 
   <div class="panel actionbar">
@@ -840,7 +841,6 @@
       if (drag) onDragEnd(null);          // dọn nốt thao tác kéo còn dở
       e.preventDefault();
       e.stopPropagation();                // đừng để nền bàn hiểu nhầm là chạm chỗ trống
-      startTimer();
       select(p);
       var s = toScene(e);
       drag = {
@@ -962,6 +962,7 @@
     won = false;
     closeModal(els.winBack);
     resetTimer();
+    startTimer();            // yc: ván mới tính giờ ngay, không đợi chạm mảnh
     select(null);
     scramble();
     renderHud();
@@ -1000,7 +1001,12 @@
 
     svg.addEventListener('contextmenu', function (e) { e.preventDefault(); });
     svg.addEventListener('pointerdown', onSceneTap);
-    els.introOk.addEventListener('click', function () { closeModal(els.introBack); });
+    // yc: bấm Xác nhận là vào chơi, đồng hồ chạy từ đây.
+    // Lúc hộp luật còn mở thì chưa thao tác được nên chưa tính giờ.
+    els.introOk.addEventListener('click', function () {
+      closeModal(els.introBack);
+      startTimer();
+    });
 
     // đổi bố cục khi xoay màn hình / đổi kích thước
     var rid = null, mode = (L.trayCols === 2 ? 'wide' : 'tall');

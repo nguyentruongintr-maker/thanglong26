@@ -28,16 +28,22 @@
     radial-gradient(130% 105% at 50% -6%, #5a4231 0%, #3d2c20 42%, #241a13 100%);
   touch-action:none;
 }
-/* hat gom min phu len TOAN CANH (he toa do man hinh) nen khong bam theo
-   manh ghep -> khong lo huong hay vi tri dung */
+/* yc: lớp men gốm + bụi gốm.
+   Cả hai phủ lên TOÀN CẢNH theo hệ toạ độ MÀN HÌNH, không bám theo mảnh ghép:
+   mảnh xê dịch thì vân dưới nó đổi theo chỗ đứng, nên vân không thể dùng để
+   nhớ mảnh nào hay hướng đúng của mảnh. Chỉ để đẹp. */
 .stage::after{
   content:"";
   position:absolute; inset:0;
   pointer-events:none;
-  opacity:.10;
-  mix-blend-mode:overlay;
-  background-image:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size:180px 180px;
+  opacity:.4;
+  mix-blend-mode:soft-light;
+  /* trên: bụi gốm mịn — dưới: men loang từng mảng lớn */
+  background-image:
+    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='520'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='1.5' intercept='-0.28'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='520' height='520' filter='url(%23g)'/%3E%3C/svg%3E");
+  background-size:180px 180px, 520px 520px;
+  background-blend-mode:overlay;
 }
 #scene{
   display:block;
@@ -66,24 +72,10 @@
 .piece .art{ transition:transform .24s cubic-bezier(.3,1.1,.4,1); }
 .piece .lift{ transition:transform .18s cubic-bezier(.3,1.3,.5,1); }
 
-/* Vat canh: mot vanh toi rong ben trong roi mot vanh sang sat mep.
-   Deu nhau moi huong nen khong he lo huong dung cua manh (yc 16). */
-.piece .bevelDark{
-  fill:none; stroke:#7d3c1e; stroke-width:11; opacity:.55;
-  stroke-linejoin:round;
-}
-.piece .bevelLite{
-  fill:none; stroke:#f0b184; stroke-width:3.4; opacity:.55;
-  stroke-linejoin:round;
-}
-.piece.placed .bevelLite{ opacity:.38 }
-.piece.placed .bevelDark{ opacity:.42 }
-
 .piece.sel .face{ stroke:#ffd23f; stroke-width:3; }
 
 /* nhac manh len khi dang keo */
 .piece.dragging .lift{ transform:scale(1.07) }
-.piece.dragging{ filter:url(#pcShadowUp) !important }
 
 /* chop sang khi manh hut vao khung */
 .piece.snapped .face{ animation:snapFlash .45s ease-out }
@@ -465,6 +457,19 @@
     return e;
   }
 
+  // Mỗi mảnh một filter bóng riêng, vì hướng và độ dài bóng phụ thuộc
+  // vị trí hiện tại của mảnh so với nguồn sáng.
+  function pieceShadowDefs() {
+    var out = '';
+    for (var i = 0; i < 9; i++) {
+      out += '<filter id="pcSh' + i + '" x="-60%" y="-60%" width="220%" height="240%">' +
+               '<feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="#140a05" flood-opacity="0.5"/>' +
+               '<feDropShadow dx="0" dy="10" stdDeviation="9" flood-color="#0d0704" flood-opacity="0.42"/>' +
+             '</filter>';
+    }
+    return out;
+  }
+
   function buildScene() {
     L = pickLayout();
     svg.setAttribute('viewBox', '0 0 ' + L.W + ' ' + L.H);
@@ -501,14 +506,23 @@
         '<stop offset="0.55" stop-color="#ffe9cf" stop-opacity="0.5"/>' +
         '<stop offset="1" stop-color="#ffffff" stop-opacity="0"/>' +
       '</linearGradient>' +
-      '<filter id="pcShadow" x="-40%" y="-40%" width="180%" height="190%">' +
-        '<feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="#140a05" flood-opacity="0.55"/>' +
-        '<feDropShadow dx="0" dy="10" stdDeviation="9" flood-color="#0d0704" flood-opacity="0.4"/>' +
-      '</filter>' +
-      '<filter id="pcShadowUp" x="-45%" y="-45%" width="190%" height="200%">' +
-        '<feDropShadow dx="0" dy="6" stdDeviation="4" flood-color="#140a05" flood-opacity="0.5"/>' +
-        '<feDropShadow dx="0" dy="22" stdDeviation="17" flood-color="#0d0704" flood-opacity="0.45"/>' +
-      '</filter>' +
+      pieceShadowDefs() +
+      // vệt sáng: mạnh nhất ngay dưới bóng đèn, ở chính giữa mép trên bàn ghép
+      '<radialGradient id="lampGlow" gradientUnits="userSpaceOnUse"' +
+        ' cx="' + (L.frameX + FRAME / 2) + '" cy="' + (L.frameY + FRAME * 0.18) + '"' +
+        ' r="' + (FRAME * 1.05) + '">' +
+        '<stop offset="0" stop-color="#fff0d8" stop-opacity="0.22"/>' +
+        '<stop offset="0.45" stop-color="#ffe2bd" stop-opacity="0.09"/>' +
+        '<stop offset="1" stop-color="#ffd7ac" stop-opacity="0"/>' +
+      '</radialGradient>' +
+      // rìa sân chơi tối lại cho ánh sáng có chiều sâu
+      '<radialGradient id="lampVign" gradientUnits="userSpaceOnUse"' +
+        ' cx="' + (L.frameX + FRAME / 2) + '" cy="' + (L.frameY + FRAME * 0.3) + '"' +
+        ' r="' + (Math.max(L.W, L.H) * 0.72) + '">' +
+        '<stop offset="0.42" stop-color="#000000" stop-opacity="0"/>' +
+        '<stop offset="0.78" stop-color="#0b0603" stop-opacity="0.26"/>' +
+        '<stop offset="1" stop-color="#080402" stop-opacity="0.5"/>' +
+      '</radialGradient>' +
       '<filter id="frShadow" x="-25%" y="-25%" width="150%" height="160%">' +
         '<feDropShadow dx="0" dy="24" stdDeviation="20" flood-color="#0a0603" flood-opacity="0.7"/>' +
       '</filter>' +
@@ -564,6 +578,14 @@
       width: BOARD * 0.5, height: BOARD + 80, fill: 'url(#sheen)'
     }));
     svg.appendChild(layers.sheen);
+
+    // yc: nguồn sáng rọi từ chính giữa phía trên xuống. Vệt sáng và vùng tối
+    // quanh rìa nằm trong TOẠ ĐỘ SÂN CHƠI nên không bám theo mảnh ghép —
+    // di chuyển mảnh thì sắc độ đổi theo chỗ đứng, không lộ mảnh nào vào đâu.
+    var glow = makeSVG('g', { 'pointer-events': 'none' });
+    glow.appendChild(makeSVG('rect', { x: 0, y: 0, width: L.W, height: L.H, fill: 'url(#lampGlow)' }));
+    glow.appendChild(makeSVG('rect', { x: 0, y: 0, width: L.W, height: L.H, fill: 'url(#lampVign)' }));
+    svg.appendChild(glow);
   }
 
   function playSheen() {
@@ -602,11 +624,7 @@
         var id = r * GRID + c;
 
         // clipPath de ve vien vat canh nam GON BEN TRONG hinh manh
-        var cp = makeSVG('clipPath', { id: 'pcClip' + id });
-        cp.appendChild(makeSVG('path', { d: geom.d }));
-        layers.defs.appendChild(cp);
-
-        var g = makeSVG('g', { 'class': 'piece', filter: 'url(#pcShadow)' });
+        var g = makeSVG('g', { 'class': 'piece', filter: 'url(#pcSh' + id + ')' });
         var lift = makeSVG('g', { 'class': 'lift' });
 
         // thanh ben mong tao be day
@@ -617,13 +635,6 @@
 
         var art = makeSVG('g', { 'class': 'art' });
         art.appendChild(makeSVG('path', { d: geom.d, 'class': 'face' }));
-
-        // vat canh: mot vanh toi rong ben trong, roi mot vanh sang sat mep.
-        // Deu nhau moi huong nen khong lo huong dung cua manh.
-        var bevel = makeSVG('g', { 'clip-path': 'url(#pcClip' + id + ')', 'pointer-events': 'none' });
-        bevel.appendChild(makeSVG('path', { d: geom.d, 'class': 'bevelDark' }));
-        bevel.appendChild(makeSVG('path', { d: geom.d, 'class': 'bevelLite' }));
-        art.appendChild(bevel);
 
         var bads = [];
         for (var j = 0; j < 4; j++) {
@@ -655,10 +666,38 @@
   }
   function applySeat(p) {
     p.g.classList.toggle('placed', p.placed);
-    p.g.setAttribute('filter', p.placed ? 'none' : 'url(#pcShadow)');
+    p.g.setAttribute('filter', p.placed ? 'none' : 'url(#pcSh' + p.id + ')');
+    applyLight(p);
   }
   function applyPos(p) {
     p.g.setAttribute('transform', 'translate(' + p.x + ',' + p.y + ')');
+    applyLight(p);
+  }
+
+  // yc: bóng đổ theo nguồn sáng ở chính giữa phía trên bàn ghép.
+  // Chỉ phụ thuộc CHỖ ĐỨNG hiện tại của mảnh, không phụ thuộc mảnh nào hay
+  // đang xoay ra sao, nên hoàn toàn không giúp nhớ thứ tự hay hướng đúng.
+  function applyLight(p) {
+    if (p.placed) return;                       // đã vào khung thì phẳng, không bóng riêng
+    var f = svg.querySelector('#pcSh' + p.id);
+    if (!f) return;
+    var lx = L.frameX + FRAME / 2;              // đèn ở chính giữa, phía trên
+    var ly = L.frameY - 40;
+    var up = p.g.classList.contains('dragging') ? 2.1 : 1;   // nhấc lên thì bóng dài ra
+    var ox = (p.x - lx) * 0.05 * up;
+    var oy = (7 + Math.max(0, p.y - ly) * 0.022) * up;
+    var far = Math.sqrt((p.x - lx) * (p.x - lx) + (p.y - ly) * (p.y - ly));
+    var blur = (5 + far * 0.013) * up;
+    var near = f.childNodes[0], soft = f.childNodes[1];
+    near.setAttribute('dx', (ox * 0.32).toFixed(2));
+    near.setAttribute('dy', (oy * 0.32).toFixed(2));
+    near.setAttribute('stdDeviation', (blur * 0.3).toFixed(2));
+    soft.setAttribute('dx', ox.toFixed(2));
+    soft.setAttribute('dy', oy.toFixed(2));
+    soft.setAttribute('stdDeviation', blur.toFixed(2));
+    // cạnh dày của mảnh lộ ra về phía khuất sáng, cùng hướng với bóng
+    p.sideWrap.setAttribute('transform',
+      'translate(' + (ox * 0.22).toFixed(2) + ',' + (4 + oy * 0.14).toFixed(2) + ')');
   }
 
   function slotPos(id) {
@@ -857,6 +896,7 @@
       drag.moved = true;
       if (p.placed) { p.placed = false; applySeat(p); renderHud(); }
       p.g.classList.add('dragging');
+      applyLight(p);
       bringToTop(p);
     }
     if (!drag.moved) return;
@@ -887,6 +927,7 @@
     var p = drag.p, wasMoved = drag.moved;
     drag = null;
     p.g.classList.remove('dragging');
+    applyLight(p);
     if (wasMoved) trySettle(p);
     // một cú chạm chỉ để chọn mảnh; xoay/lật đều qua ba nút bên dưới
   }

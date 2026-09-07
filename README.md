@@ -53,7 +53,16 @@ Kết thúc: cả 4 người lính ở vạch 0, năng lượng 0/0/0/0.
 - Đặt sai: các cạnh không khớp **hiện đỏ** và mảnh **không** bị hút vào.
 - Chạm 1 lần = quay phải 90°, chạm 2 lần liên tiếp = quay trái 90°, ấn giữ = lật mặt.
   Có thêm ba nút Quay trái / Lật mặt / Quay phải.
-- Chỉ phân biệt được bằng **hình dạng đường viền** — mọi mảnh cùng một màu, không hoa văn.
+- Chỉ phân biệt được bằng **hình dạng đường viền** — mọi mảnh cùng một màu, không hoa văn,
+  không còn vành vát bên trong.
+- **Men gốm + bụi gốm** phủ lên toàn cảnh theo hệ toạ độ *màn hình* (`.stage::after`,
+  hai lớp `feTurbulence`), và **nguồn sáng** ở chính giữa phía trên (`#lampGlow`,
+  `#lampVign`) nằm trong hệ toạ độ *sân chơi*. Mỗi mảnh có filter bóng riêng
+  `#pcSh0..8`; `applyLight()` tính hướng và độ dài bóng cùng độ lệch cạnh dày
+  **chỉ từ vị trí hiện tại** của mảnh so với đèn.
+- Vì thế mọi hiệu ứng thẩm mỹ đều **không phụ thuộc mảnh nào hay đang xoay ra sao**:
+  hai mảnh khác nhau đặt cùng một chỗ cho ra tham số vẽ y hệt nhau. Đây là ràng buộc
+  bắt buộc — vân hay bóng bám theo mảnh sẽ giúp người chơi nhớ mảnh và lộ lời giải.
 - Ghép trúng ô: mảnh **nhún xuống**, loé sáng, kèm **sóng lan + bụi gốm** bắn ra.
   Hiệu ứng nhún đặt trên `.lift` chứ không phải `.art`, vì `.art` đang giữ phép
   xoay/lật bằng thuộc tính `transform` — animation CSS sẽ ghi đè mất.

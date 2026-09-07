@@ -24,14 +24,16 @@
   }
   .hero p{margin:0;color:var(--muted);font-size:clamp(13px,2.6vw,16px);font-weight:600}
 
+  /* 4 cột cố định để mỗi hàng đúng 4 ô: hàng trên là 4 trò đang chơi được,
+     hàng dưới là 4 ô chờ trò mới */
   .grid{
     display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+    grid-template-columns:repeat(4,minmax(0,1fr));
     gap:clamp(12px,2.6vw,22px);
     padding-bottom:40px;
   }
-  @media (max-width:560px){
-    .grid{grid-template-columns:repeat(2,1fr);gap:12px}
+  @media (max-width:760px){
+    .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
   }
 
   /* --- square tile --- */
@@ -77,6 +79,7 @@
   .tile.live .tile-art{animation:bob 3.2s ease-in-out infinite}
   @keyframes bob{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-8px) rotate(3deg)}}
 
+  .tile-art svg{width:1em;height:1em;display:block}
   .tile-name{font-size:clamp(14px,3vw,18px);font-weight:900;z-index:1;line-height:1.25}
   .tile-sub{font-size:clamp(10px,2.2vw,12px);font-weight:700;color:rgba(255,255,255,.78);z-index:1}
 
@@ -119,14 +122,14 @@
 
   <section class="hero">
     <h2>Chọn một trò chơi</h2>
-    <p>Chạm vào ô để bắt đầu. Bốn trò chơi đều đã sẵn sàng.</p>
+    <p>Chạm vào ô để bắt đầu. Bốn trò đã sẵn sàng, bốn ô còn lại sẽ sớm có trò mới.</p>
   </section>
 
   <main class="grid">
 
     <a class="tile live" href="dua-linh-sang-song/index.html">
       <span class="badge-play">CHƠI NGAY</span>
-      <div class="tile-art">🚩</div>
+      <div class="tile-art"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="12" y="6" width="7.5" height="88" rx="3.7" fill="#4a3526"/><circle cx="15.7" cy="5" r="5.4" fill="#f2c014"/><path d="M19 12 H83 L93 18.4 L83 24.8 L93 31.2 L83 37.6 L93 44 L83 50.4 L93 56.8 L83 63.2 L93 69.6 L83 76 H19 Z" fill="#f2c014"/><rect x="19" y="12" width="64" height="64" fill="#d93a2b"/><rect x="25.4" y="18.4" width="51.2" height="51.2" fill="#f2c014"/><rect x="31.8" y="24.8" width="38.4" height="38.4" fill="#2f9e4f"/><rect x="38.2" y="31.2" width="25.6" height="25.6" fill="#f5efe0"/><rect x="44.6" y="37.6" width="12.8" height="12.8" fill="#2a6fb0"/><rect x="19" y="12" width="64" height="64" fill="none" stroke="#5a2b18" stroke-width="1.408" opacity=".45"/></svg></div>
       <div class="tile-name">Đưa Lính Sang Sông</div>
       <div class="tile-sub">Giải đố năng lượng · 4 người lính</div>
     </a>
@@ -147,10 +150,35 @@
 
     <a class="tile live" href="ky-uc-di-san/index.html">
       <span class="badge-play">CHƠI NGAY</span>
-      <div class="tile-art">🃏</div>
+      <div class="tile-art">🏵️</div>
       <div class="tile-name">Ký Ức Di Sản</div>
       <div class="tile-sub">Lật mảnh ghép · 16 hiện vật</div>
     </a>
+
+    <!-- hàng dưới: 4 ô để trống, dành cho các trò sắp ra mắt -->
+    <div class="tile soon" aria-disabled="true">
+      <div class="tile-art">🎯</div>
+      <div class="tile-name">Trò chơi 5</div>
+      <div class="tile-sub">Sắp ra mắt</div>
+    </div>
+
+    <div class="tile soon" aria-disabled="true">
+      <div class="tile-art">🎲</div>
+      <div class="tile-name">Trò chơi 6</div>
+      <div class="tile-sub">Sắp ra mắt</div>
+    </div>
+
+    <div class="tile soon" aria-disabled="true">
+      <div class="tile-art">🏮</div>
+      <div class="tile-name">Trò chơi 7</div>
+      <div class="tile-sub">Sắp ra mắt</div>
+    </div>
+
+    <div class="tile soon" aria-disabled="true">
+      <div class="tile-art">🪁</div>
+      <div class="tile-name">Trò chơi 8</div>
+      <div class="tile-sub">Sắp ra mắt</div>
+    </div>
 
   </main>
 

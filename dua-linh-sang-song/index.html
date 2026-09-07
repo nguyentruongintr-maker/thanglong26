@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Đưa Lính Sang Sông — Thăng Long 26</title>
 <meta name="description" content="Trò chơi giải đố năng lượng: đưa một người lính đi lấy lá cờ rồi cả đội cùng quay về vạch xuất phát.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9A%A9%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='12' y='6' width='7.5' height='88' rx='3.7' fill='%234a3526'/%3E%3Ccircle cx='15.7' cy='5' r='5.4' fill='%23f2c014'/%3E%3Cpath d='M19 12 H83 L93 18.4 L83 24.8 L93 31.2 L83 37.6 L93 44 L83 50.4 L93 56.8 L83 63.2 L93 69.6 L83 76 H19 Z' fill='%23f2c014'/%3E%3Crect x='19' y='12' width='64' height='64' fill='%23d93a2b'/%3E%3Crect x='25.4' y='18.4' width='51.2' height='51.2' fill='%23f2c014'/%3E%3Crect x='31.8' y='24.8' width='38.4' height='38.4' fill='%232f9e4f'/%3E%3Crect x='38.2' y='31.2' width='25.6' height='25.6' fill='%23f5efe0'/%3E%3Crect x='44.6' y='37.6' width='12.8' height='12.8' fill='%232a6fb0'/%3E%3Crect x='19' y='12' width='64' height='64' fill='none' stroke='%235a2b18' stroke-width='1.408' opacity='.45'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="../assets/shell.css">
 <style>
 /* ===================== Ruler (0 · 25 · 50 · 75 · 100) ===================== */
@@ -71,6 +71,10 @@
 }
 .gline.start{border-left-color:rgba(255,255,255,.78)}
 .gline.finish{border-left-color:rgba(255,220,120,.85)}
+
+/* cờ hội ngũ sắc dùng làm biểu tượng: trong brand-mark và hộp chiến thắng */
+.brand-mark svg{width:28px;height:28px;display:block}
+.trophy svg{width:58px;height:58px;display:block;margin:0 auto}
 
 /* ===================== Flag on buoy ===================== */
 .buoy{
@@ -365,7 +369,7 @@
 
   <header class="topbar">
     <div class="brand">
-      <div class="brand-mark">🚩</div>
+      <div class="brand-mark"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="12" y="6" width="7.5" height="88" rx="3.7" fill="#4a3526"/><circle cx="15.7" cy="5" r="5.4" fill="#f2c014"/><path d="M19 12 H83 L93 18.4 L83 24.8 L93 31.2 L83 37.6 L93 44 L83 50.4 L93 56.8 L83 63.2 L93 69.6 L83 76 H19 Z" fill="#f2c014"/><rect x="19" y="12" width="64" height="64" fill="#d93a2b"/><rect x="25.4" y="18.4" width="51.2" height="51.2" fill="#f2c014"/><rect x="31.8" y="24.8" width="38.4" height="38.4" fill="#2f9e4f"/><rect x="38.2" y="31.2" width="25.6" height="25.6" fill="#f5efe0"/><rect x="44.6" y="37.6" width="12.8" height="12.8" fill="#2a6fb0"/><rect x="19" y="12" width="64" height="64" fill="none" stroke="#5a2b18" stroke-width="1.408" opacity=".45"/></svg></div>
       <div class="brand-text">
         <h1>Đưa Lính Sang Sông</h1>
         <p>Lấy cờ rồi quay về vạch xuất phát</p>
@@ -410,7 +414,7 @@
   <div class="modal">
     <div class="trophy">🏆</div>
     <h2 id="winTitle">Chúc mừng!</h2>
-    <p>Cả bốn người lính đều đã rời vạch xuất phát, lá cờ 🚩 đã được mang về, và tất cả đã quay lại vạch xuất phát an toàn.</p>
+    <p>Cả bốn người lính đều đã rời vạch xuất phát, lá cờ hội đã được mang về, và tất cả đã quay lại vạch xuất phát an toàn.</p>
     <p id="winStats" style="color:var(--accent);font-weight:800"></p>
     <div class="modal-actions">
       <button class="btn btn-primary" id="winReplay" type="button">↻ Chơi lại</button>
@@ -433,7 +437,7 @@
 
 <div class="modal-back" id="introBack" role="dialog" aria-modal="true" aria-labelledby="introTitle">
   <div class="modal">
-    <div class="trophy">🚩</div>
+    <div class="trophy"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="12" y="6" width="7.5" height="88" rx="3.7" fill="#4a3526"/><circle cx="15.7" cy="5" r="5.4" fill="#f2c014"/><path d="M19 12 H83 L93 18.4 L83 24.8 L93 31.2 L83 37.6 L93 44 L83 50.4 L93 56.8 L83 63.2 L93 69.6 L83 76 H19 Z" fill="#f2c014"/><rect x="19" y="12" width="64" height="64" fill="#d93a2b"/><rect x="25.4" y="18.4" width="51.2" height="51.2" fill="#f2c014"/><rect x="31.8" y="24.8" width="38.4" height="38.4" fill="#2f9e4f"/><rect x="38.2" y="31.2" width="25.6" height="25.6" fill="#f5efe0"/><rect x="44.6" y="37.6" width="12.8" height="12.8" fill="#2a6fb0"/><rect x="19" y="12" width="64" height="64" fill="none" stroke="#5a2b18" stroke-width="1.408" opacity=".45"/></svg></div>
     <h2 id="introTitle">Đưa Lính Sang Sông</h2>
     <ol class="rules-list intro-list">
       <li>Lấy cờ đưa về.</li>
@@ -545,10 +549,10 @@
         '<ellipse cx="31" cy="84" rx="25" ry="6" fill="#ffffff" opacity=".42"/>' +
         '<path d="M11 82 q0 -18 20 -18 q20 0 20 18 z" fill="#e64b35"/>' +
         '<path d="M11 82 q0 -8 20 -8 q20 0 20 8 z" fill="#c0392b" opacity=".55"/>' +
-        '<rect x="29" y="10" width="4.5" height="58" rx="2.2" fill="#2f2f33"/>' +
+        '<rect x="27.5" y="6" width="4.5" height="62" rx="2.2" fill="#4a3526"/>' +
+        '<circle cx="29.7" cy="5" r="3.2" fill="#f2c014"/>' +
         '<g class="pennant">' +
-          '<path d="M33 12 q15 4 24 -2 q-7 13 0 22 q-11 5 -24 1 z" fill="#ef4b3a"/>' +
-          '<path d="M33 12 q15 4 24 -2 q-4 7 -3 10 q-11 3 -21 0 z" fill="#ff6d5c" opacity=".7"/>' +
+          '<path d="M32 9 H58 L61.6 11.6 L58 14.2 L61.6 16.8 L58 19.4 L61.6 22 L58 24.6 L61.6 27.2 L58 29.8 L61.6 32.4 L58 35 H32 Z" fill="#f2c014"/><rect x="32" y="9" width="26" height="26" fill="#d93a2b"/><rect x="34.6" y="11.6" width="20.8" height="20.8" fill="#f2c014"/><rect x="37.2" y="14.2" width="15.6" height="15.6" fill="#2f9e4f"/><rect x="39.8" y="16.8" width="10.4" height="10.4" fill="#f5efe0"/><rect x="42.4" y="19.4" width="5.2" height="5.2" fill="#2a6fb0"/><rect x="32" y="9" width="26" height="26" fill="none" stroke="#5a2b18" stroke-width="0.572" opacity=".45"/>' +
         '</g>' +
       '</svg>';
   }
@@ -556,9 +560,10 @@
   function heldFlagSVG() {
     return '' +
       '<svg viewBox="0 0 44 62" xmlns="http://www.w3.org/2000/svg">' +
-        '<rect x="19" y="4" width="4" height="56" rx="2" fill="#2f2f33"/>' +
+        '<rect x="16" y="4" width="4" height="56" rx="2" fill="#4a3526"/>' +
+        '<circle cx="18" cy="3.2" r="2.8" fill="#f2c014"/>' +
         '<g class="pennant">' +
-          '<path d="M23 6 q14 4 21 -2 q-6 12 0 20 q-10 4 -21 1 z" fill="#ef4b3a"/>' +
+          '<path d="M20 6 H40 L42.8 8.5 L40 11 L42.8 13.5 L40 16 L42.8 18.5 L40 21 L42.8 23.5 L40 26 H20 Z" fill="#f2c014"/><rect x="20" y="6" width="20" height="20" fill="#d93a2b"/><rect x="22" y="8" width="16" height="16" fill="#f2c014"/><rect x="24" y="10" width="12" height="12" fill="#2f9e4f"/><rect x="26" y="12" width="8" height="8" fill="#f5efe0"/><rect x="28" y="14" width="4" height="4" fill="#2a6fb0"/><rect x="20" y="6" width="20" height="20" fill="none" stroke="#5a2b18" stroke-width="0.44" opacity=".45"/>' +
         '</g>' +
       '</svg>';
   }
@@ -736,7 +741,7 @@
     }
     var d = state.ducks[s];
     els.who.innerHTML = "Đang chọn: <b>" + NAMES[s] + "</b> · vạch " + d.col + " · " + d.energy + " ⚡" +
-                        (d.hasFlag ? " · 🚩" : "");
+                        (d.hasFlag ? " · đang giữ cờ" : "");
     setAct(els.actFwd,  canMove(d, +1).ok);
     setAct(els.actBack, canMove(d, -1).ok);
     setAct(els.actUp,   canTransfer(d, -1).ok);
@@ -856,7 +861,7 @@
         state.flagTaken = true;
         d.hasFlag = true;
         sparkle(FLAG_COL, FLAG_ROW);
-        toast("Đã giành được lá cờ! 🚩 Giờ quay về vạch xuất phát nhé.", "good");
+        toast("Đã giành được lá cờ hội! Giờ quay về vạch xuất phát nhé.", "good");
         render();
       }
 
@@ -928,7 +933,7 @@
     closeModal(els.stuckBack);
     build();
     render();
-    toast("Ván mới bắt đầu! 🚩", "good");
+    toast("Ván mới bắt đầu!", "good");
   }
 
   /* ===================== Khởi động ===================== */

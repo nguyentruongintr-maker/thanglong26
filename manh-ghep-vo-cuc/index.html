@@ -82,8 +82,36 @@
 /* chop sang khi manh hut vao khung */
 .piece.snapped .face{ animation:snapFlash .45s ease-out }
 @keyframes snapFlash{
-  0%{ fill:#ffdcb9 }
+  0%{ fill:#fff2e0 }
+  28%{ fill:#ffc389 }
   100%{ fill:url(#clay) }
+}
+/* mảnh nhún xuống như đóng khít vào khung. Đặt trên .lift vì .art đang
+   giữ phép xoay/lật bằng thuộc tính transform, không được ghi đè. */
+.piece.snapped .lift{ animation:snapPunch .46s cubic-bezier(.26,1.55,.4,1) }
+@keyframes snapPunch{
+  0%{ transform:scale(1.17) }
+  46%{ transform:scale(.94) }
+  74%{ transform:scale(1.03) }
+  100%{ transform:scale(1) }
+}
+/* sóng lan và bụi gốm bắn ra tại ô vừa ăn khớp */
+.burst{ pointer-events:none }
+.burst .ring{
+  fill:none; stroke:#ffd9a8;
+  animation:snapRing .55s cubic-bezier(.2,.85,.3,1) forwards;
+}
+@keyframes snapRing{
+  0%{ transform:scale(.32); opacity:.95; stroke-width:10 }
+  100%{ transform:scale(1.55); opacity:0; stroke-width:1 }
+}
+.burst .spark{
+  fill:#ffc98a;
+  animation:snapSpark .6s ease-out forwards;
+}
+@keyframes snapSpark{
+  0%{ transform:translate(0,0) scale(1); opacity:.95 }
+  100%{ transform:translate(var(--dx),var(--dy)) scale(.15); opacity:0 }
 }
 .piece .bad{
   fill:none;
@@ -104,12 +132,6 @@
 .recess{ fill:#7c5136; }
 .recessEdge{ fill:none; stroke:#2a1a10; stroke-width:2.5; }
 .recessLip{ fill:none; stroke:rgba(255,224,192,.20); stroke-width:2; }
-/* tam lot hai ben cho manh chua ghep */
-.mat{
-  fill:rgba(24,14,9,.42);
-  stroke:rgba(255,214,176,.10);
-  stroke-width:1.5;
-}
 
 /* ===================== HUD ===================== */
 .bhud{ display:flex; align-items:center; gap:10px; margin:2px 0 10px }
@@ -125,15 +147,25 @@
 
 .actionbar{ padding:10px }
 .act-grid{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px }
+/* yc: bỏ ô nền của ba nút, ký hiệu chuyển sang màu xanh lá */
+.act, .act:hover{
+  background:none;
+  border:none;
+  box-shadow:none;
+  backdrop-filter:none;
+}
 .act{
   min-height:62px;
   padding:6px;
   font-size:34px;
   line-height:1;
-  color:#e08a4e;
-  text-shadow:0 2px 6px rgba(0,0,0,.45);
+  color:#3fd07a;
+  text-shadow:0 2px 10px rgba(0,0,0,.55);
+  transition:color .18s ease, transform .14s ease, opacity .18s ease;
 }
-.act:hover{ color:#f4a468 }
+.act:hover{ color:#74efa6; transform:translateY(-3px) }
+.act:active{ transform:scale(.9) }
+.act[disabled], .act[aria-disabled="true"]{ opacity:.3 }
 
 .help-list{ text-align:left; margin:14px 0 0; padding-left:20px; color:#d5e9f7; font-size:14px; line-height:1.75 }
 .help-list li{ margin-bottom:6px }
@@ -361,12 +393,13 @@
      ================================================================== */
 
   var PSLOT = 214;             // ô chứa một mảnh ở khay
+  var LIFT  = 30;              // yc: đôn bàn ghép lên cho cao hơn hai khay
   var LAYOUTS = {
     wide: function () {
       var trayW = 2 * PSLOT, gap = 26;
       var W = trayW + gap + FRAME + gap + trayW + 2 * 20;
       var H_ = Math.max(3 * PSLOT, FRAME) + 40;
-      var bx = 20 + trayW + gap, by = (H_ - FRAME) / 2;
+      var bx = 20 + trayW + gap, by = (H_ - FRAME) / 2 - LIFT;
       return { W: W, H: H_, boardX: bx + RIM, boardY: by + RIM, frameX: bx, frameY: by,
                trayCols: 2, leftX: 20, rightX: bx + FRAME + gap, trayW: trayW,
                trayTop: (H_ - 3 * PSLOT) / 2, trayH: 3 * PSLOT };
@@ -377,7 +410,7 @@
       var rows = 5, step = 196;
       var trayH = (rows - 1) * step + PSLOT;
       var H_ = Math.max(trayH, FRAME) + 30;
-      var bx = 14 + trayW + gap, by = (H_ - FRAME) / 2;
+      var bx = 14 + trayW + gap, by = (H_ - FRAME) / 2 - LIFT;
       return { W: W, H: H_, boardX: bx + RIM, boardY: by + RIM, frameX: bx, frameY: by,
                trayCols: 1, leftX: 14, rightX: bx + FRAME + gap, trayW: trayW,
                trayTop: (H_ - trayH) / 2, trayStep: step, trayH: trayH };
@@ -455,7 +488,7 @@
         '<feDropShadow dx="0" dy="22" stdDeviation="17" flood-color="#0d0704" flood-opacity="0.45"/>' +
       '</filter>' +
       '<filter id="frShadow" x="-25%" y="-25%" width="150%" height="160%">' +
-        '<feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#0a0603" flood-opacity="0.6"/>' +
+        '<feDropShadow dx="0" dy="24" stdDeviation="20" flood-color="#0a0603" flood-opacity="0.7"/>' +
       '</filter>' +
       '<filter id="blurIn" x="-30%" y="-30%" width="160%" height="160%">' +
         '<feGaussianBlur stdDeviation="7"/>' +
@@ -464,16 +497,6 @@
     svg.appendChild(defs);
     layers.defs = defs;
 
-    // --- hai tam lot hai ben cho manh chua ghep ---
-    var mp = 16;
-    [L.leftX, L.rightX].forEach(function (x) {
-      svg.appendChild(makeSVG('rect', {
-        x: x - mp, y: L.trayTop - mp,
-        width: L.trayW + 2 * mp, height: L.trayH + 2 * mp,
-        rx: 20, 'class': 'mat'
-      }));
-    });
-
     // --- khung ban ---
     var gBoard = makeSVG('g', { filter: 'url(#frShadow)' });
     var plateD =
@@ -481,7 +504,7 @@
       ' q0 -18 18 -18 h' + (FRAME - 36) + ' q18 0 18 18' +
       ' v' + (FRAME - 36) + ' q0 18 -18 18 h-' + (FRAME - 36) + ' q-18 0 -18 -18 Z';
 
-    gBoard.appendChild(makeSVG('path', { d: plateD, 'class': 'plateSide', transform: 'translate(0,11)' }));
+    gBoard.appendChild(makeSVG('path', { d: plateD, 'class': 'plateSide', transform: 'translate(0,21)' }));
 
     // long khung: nen dat am
     var gRec = makeSVG('g', { transform: 'translate(' + L.boardX + ',' + L.boardY + ')' });
@@ -763,9 +786,33 @@
 
   function flashSnap(p) {
     p.g.classList.remove('snapped');
-    void p.g.getBoundingClientRect();
+    void p.g.getBoundingClientRect();      // ép trình duyệt chạy lại animation
     p.g.classList.add('snapped');
-    setTimeout(function () { p.g.classList.remove('snapped'); }, 460);
+    setTimeout(function () { p.g.classList.remove('snapped'); }, 620);
+    burstAt(slotPos(p.id));
+  }
+
+  // Sóng lan + bụi gốm bắn ra tại ô vừa ăn khớp.
+  // Vẽ vào layers.top nên luôn nổi trên các mảnh, và tự dọn sau khi chạy xong.
+  function burstAt(t) {
+    var g = makeSVG('g', {
+      'class': 'burst', 'pointer-events': 'none',
+      transform: 'translate(' + t.x + ',' + t.y + ')'
+    });
+    g.appendChild(makeSVG('circle', { r: S * 0.3, 'class': 'ring' }));
+
+    var N = 9;
+    for (var i = 0; i < N; i++) {
+      var a = (Math.PI * 2 * i) / N + Math.random() * 0.35;
+      var d = S * (0.36 + Math.random() * 0.18);
+      var c = makeSVG('circle', { r: (3.5 + Math.random() * 3).toFixed(1), 'class': 'spark' });
+      c.style.setProperty('--dx', (Math.cos(a) * d).toFixed(1) + 'px');
+      c.style.setProperty('--dy', (Math.sin(a) * d).toFixed(1) + 'px');
+      c.style.animationDelay = ((Math.random() * 70) | 0) + 'ms';
+      g.appendChild(c);
+    }
+    layers.top.appendChild(g);
+    setTimeout(function () { if (g.parentNode) g.parentNode.removeChild(g); }, 780);
   }
 
   function bringToTop(p) { layers.top.appendChild(p.g); }

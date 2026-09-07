@@ -26,6 +26,9 @@ Mở thẳng `index.html` bằng trình duyệt — không cần server, không 
 - Chuyền 25 năng lượng cho người lính ngay trên/dưới — **bắt buộc cùng một vạch**.
 - Người lính đang đủ 100 năng lượng không nhận chuyền được.
 - Chỉ người lính ở đúng hàng của cờ mới giành được cờ.
+- Lá cờ là **cờ hội ngũ sắc** (5 ô vuông lồng nhau theo ngũ hành, viền răng cưa
+  hình ngọn lửa), vẽ bằng SVG trong `flagSVG()` / `heldFlagSVG()`. Cùng một hình
+  được dùng lại làm favicon, brand-mark và ô trên trang chủ.
 - **Thắng:** lấy được cờ **và** cả 4 người lính đều đã rời vạch xuất phát ít nhất một lần
   **và** cả 4 người đều đã quay về vạch xuất phát.
 
@@ -51,6 +54,11 @@ Kết thúc: cả 4 người lính ở vạch 0, năng lượng 0/0/0/0.
 - Chạm 1 lần = quay phải 90°, chạm 2 lần liên tiếp = quay trái 90°, ấn giữ = lật mặt.
   Có thêm ba nút Quay trái / Lật mặt / Quay phải.
 - Chỉ phân biệt được bằng **hình dạng đường viền** — mọi mảnh cùng một màu, không hoa văn.
+- Ghép trúng ô: mảnh **nhún xuống**, loé sáng, kèm **sóng lan + bụi gốm** bắn ra.
+  Hiệu ứng nhún đặt trên `.lift` chứ không phải `.art`, vì `.art` đang giữ phép
+  xoay/lật bằng thuộc tính `transform` — animation CSS sẽ ghi đè mất.
+- Không còn tấm lót hai bên; bàn ghép được đôn lên `LIFT = 30` và dày khối đùn
+  để trông cao hơn hai khay. Ba nút ↺ ⇋ ↻ bỏ ô nền, ký hiệu màu xanh lá.
 - Có đồng hồ tính giờ; nút Chơi lại xáo lại toàn bộ và đưa mảnh ra ngoài khung.
 
 ## Thiên Niên Sử Sudoku — luật
@@ -97,5 +105,7 @@ Kết thúc: cả 4 người lính ở vạch 0, năng lượng 0/0/0/0.
 
 1. Tạo thư mục `<ten-tro-choi>/index.html`.
 2. Link `../assets/shell.css`.
-3. Đổi một ô `.tile.soon` trong `index.html` thành thẻ `<a class="tile live" href="...">`
-   (hiện cả 4 ô đều đã có trò chơi — thêm ô mới vào `main.grid`).
+3. Đổi một ô `.tile.soon` trong `index.html` thành thẻ `<a class="tile live" href="...">`.
+
+Lưới trang chủ cố định **4 cột** (2 cột khi màn hình ≤760px) nên mỗi hàng đúng 4 ô:
+hàng trên là 4 trò đang chơi được, hàng dưới là 4 ô `.tile.soon` chờ trò mới.

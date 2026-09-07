@@ -57,8 +57,16 @@ Kết thúc: cả 4 người lính ở vạch 0, năng lượng 0/0/0/0.
 - Ghép trúng ô: mảnh **nhún xuống**, loé sáng, kèm **sóng lan + bụi gốm** bắn ra.
   Hiệu ứng nhún đặt trên `.lift` chứ không phải `.art`, vì `.art` đang giữ phép
   xoay/lật bằng thuộc tính `transform` — animation CSS sẽ ghi đè mất.
-- Không còn tấm lót hai bên; bàn ghép được đôn lên `LIFT = 30` và dày khối đùn
-  để trông cao hơn hai khay. Ba nút ↺ ⇋ ↻ bỏ ô nền, ký hiệu màu xanh lá.
+- Không còn tấm lót hai bên; bàn ghép được đôn lên `LIFT` và dày khối đùn
+  để trông cao hơn hai khay. Ba nút ↺ ⇋ ↻ không nền, ký hiệu màu xanh lá.
+- **Một bố cục duy nhất** cho mọi bề ngang: 3 mảnh chờ bên trái, 3 bên dưới,
+  3 bên phải (`pickLayout` + `traySpot`). SVG tự co nên không dựng lại khi resize.
+- `buildScene()` đặt ba biến CSS trên `.wrap`: `--inset-frac` (mép bàn ghép cách
+  rìa sân chơi bao nhiêu phần), `--board-frac` (bề ngang bàn ghép) và `--scene-ar`.
+  Nhờ đó hàng ba nút và bộ đếm **dóng đúng hai mép bàn ghép**, còn `--stage-w`
+  giới hạn sân chơi theo `100dvh` để trang không phải cuộn.
+- HUD bị bó trong bề ngang bàn ghép, nên ở màn ≤700px nhãn rút còn `Ghép:`
+  và chữ nhỏ lại — nếu không, đồng hồ và bộ đếm sẽ chồng lên nhau.
 - Có đồng hồ tính giờ; nút Chơi lại xáo lại toàn bộ và đưa mảnh ra ngoài khung.
 
 ## Thiên Niên Sử Sudoku — luật

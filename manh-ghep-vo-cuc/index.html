@@ -9,9 +9,15 @@
 <link rel="stylesheet" href="../assets/shell.css">
 <style>
 /* ===================== Sân chơi ===================== */
+/* yc: sân chơi co theo cả bề ngang lẫn chiều cao màn hình để không phải cuộn.
+   --scene-ar, --inset-frac, --board-frac do JS đặt sau khi dựng sân chơi. */
+.wrap{
+  --stage-w:max(300px, min(100%, calc((100dvh - 252px) * var(--scene-ar,1.18))));
+}
 .stage{
   position:relative;
-  width:100%;
+  width:var(--stage-w);
+  margin-inline:auto;
   border-radius:22px;
   overflow:hidden;
   border:1px solid rgba(255,220,190,.14);
@@ -134,7 +140,13 @@
 .recessLip{ fill:none; stroke:rgba(255,224,192,.20); stroke-width:2; }
 
 /* ===================== HUD ===================== */
-.bhud{ display:flex; align-items:center; gap:10px; margin:2px 0 10px }
+/* yc: bộ đếm nằm ở góc trên bên phải của BÀN GHÉP, không phải của cả sân chơi */
+.bhud{
+  display:flex; align-items:center; gap:10px;
+  width:var(--stage-w);
+  margin:2px auto 10px;
+  padding:0 calc(var(--stage-w) * var(--inset-frac,0));
+}
 .bhud .side{ flex:1 1 0; display:flex; align-items:center; gap:8px; min-width:0 }
 .bhud .side.right{ justify-content:flex-end }
 .clock{
@@ -142,10 +154,16 @@
   font-variant-numeric:tabular-nums; letter-spacing:.5px; white-space:nowrap;
 }
 .errs{ font-size:13px; font-weight:800; color:var(--muted); white-space:nowrap }
+.bhud .k-short{ display:none }
 .errs b{ color:var(--accent) }
 .errs b.hot{ color:#7ee3a0 }
 
-.actionbar{ padding:10px }
+/* yc: ba nút gói trong bề ngang bàn ghép và không còn nền */
+.actionbar{
+  width:calc(var(--stage-w) * var(--board-frac,1));
+  margin:8px auto 0;
+  padding:0;
+}
 .act-grid{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px }
 /* yc: bỏ ô nền của ba nút, ký hiệu chuyển sang màu xanh lá */
 .act, .act:hover{
@@ -184,6 +202,12 @@
   .topbar .lbl{display:none}
   .topbar .btn{padding:0 13px}
   .brand-text p{display:none}
+  /* HUD bị bó trong bề ngang bàn ghép nên thu gọn chữ cho khỏi chồng nhau */
+  .bhud{ gap:6px }
+  .clock{ font-size:14px }
+  .errs{ font-size:11.5px }
+  .bhud .k-long{ display:none }
+  .bhud .k-short{ display:inline }
   .hud .stat{padding:7px 8px;font-size:12px}
   .hud .k-long{display:none}
   .hud .k-short{display:inline}
@@ -213,7 +237,7 @@
     <div class="side left"></div>
     <div class="clock" id="statTime">00:00</div>
     <div class="side right">
-      <span class="errs">Đã ghép: <b id="statDone">0/9</b></span>
+      <span class="errs"><span class="k-long">Đã ghép: </span><span class="k-short">Ghép: </span><b id="statDone">0/9</b></span>
     </div>
   </div>
 
@@ -221,7 +245,7 @@
     <svg id="scene" xmlns="http://www.w3.org/2000/svg" role="application" aria-label="Bàn ghép hình"></svg>
   </div>
 
-  <div class="panel actionbar">
+  <div class="actionbar">
     <div class="act-grid">
       <button class="btn act" id="actLeft" type="button" aria-label="Quay trái 90 độ" title="Quay trái">↺</button>
       <button class="btn act" id="actFlip" type="button" aria-label="Lật mặt" title="Lật mặt">⇋</button>
@@ -392,46 +416,37 @@
      2. BỐ CỤC SÂN CHƠI
      ================================================================== */
 
-  var PSLOT = 214;             // ô chứa một mảnh ở khay
-  var LIFT  = 30;              // yc: đôn bàn ghép lên cho cao hơn hai khay
-  var LAYOUTS = {
-    wide: function () {
-      var trayW = 2 * PSLOT, gap = 26;
-      var W = trayW + gap + FRAME + gap + trayW + 2 * 20;
-      var H_ = Math.max(3 * PSLOT, FRAME) + 40;
-      var bx = 20 + trayW + gap, by = (H_ - FRAME) / 2 - LIFT;
-      return { W: W, H: H_, boardX: bx + RIM, boardY: by + RIM, frameX: bx, frameY: by,
-               trayCols: 2, leftX: 20, rightX: bx + FRAME + gap, trayW: trayW,
-               trayTop: (H_ - 3 * PSLOT) / 2, trayH: 3 * PSLOT };
-    },
-    tall: function () {
-      var trayW = PSLOT, gap = 20;
-      var W = trayW + gap + FRAME + gap + trayW + 2 * 14;
-      var rows = 5, step = 196;
-      var trayH = (rows - 1) * step + PSLOT;
-      var H_ = Math.max(trayH, FRAME) + 30;
-      var bx = 14 + trayW + gap, by = (H_ - FRAME) / 2 - LIFT;
-      return { W: W, H: H_, boardX: bx + RIM, boardY: by + RIM, frameX: bx, frameY: by,
-               trayCols: 1, leftX: 14, rightX: bx + FRAME + gap, trayW: trayW,
-               trayTop: (H_ - trayH) / 2, trayStep: step, trayH: trayH };
-    }
-  };
+  var PSLOT  = 214;            // ô chứa một mảnh ở khay
+  var LIFT   = 12;             // đôn bàn ghép lên chút cho cao hơn hai khay
+  var MARGIN = 16;             // lề ngoài sân chơi
+  var GAPX   = 20;             // khoảng cách khay dọc ↔ khung
+  var GAPY   = 16;             // khoảng cách khung ↔ hàng chờ bên dưới
 
+  // yc: một bố cục duy nhất cho mọi bề ngang — 3 mảnh chờ bên trái,
+  // 3 bên dưới, 3 bên phải. SVG tự co theo bề ngang khung chứa nên
+  // không cần dựng lại sân chơi khi đổi kích thước cửa sổ.
   function pickLayout() {
-    var w = window.innerWidth || 1024;
-    return w >= 900 ? LAYOUTS.wide() : LAYOUTS.tall();
+    var sideH = 3 * PSLOT;                  // chiều cao một cột khay
+    var topH  = Math.max(sideH, FRAME);     // phần trên: khung + hai cột khay
+    var W  = MARGIN + PSLOT + GAPX + FRAME + GAPX + PSLOT + MARGIN;
+    var H_ = MARGIN + topH + GAPY + PSLOT + MARGIN;
+    var bx = MARGIN + PSLOT + GAPX;
+    var by = MARGIN + (topH - FRAME) / 2 - LIFT;
+    return {
+      W: W, H: H_,
+      boardX: bx + RIM, boardY: by + RIM, frameX: bx, frameY: by,
+      leftX: MARGIN, rightX: bx + FRAME + GAPX, trayW: PSLOT,
+      trayTop: MARGIN + (topH - sideH) / 2, trayH: sideH,
+      botY: MARGIN + topH + GAPY,                       // hàng chờ dưới bàn ghép
+      botX: bx + FRAME / 2 - 1.5 * PSLOT                // căn giữa theo bàn ghép
+    };
   }
 
-  // vị trí khay cho mảnh thứ i (0..8): 5 bên trái, 4 bên phải
+  // vị trí khay cho mảnh thứ i (0..8): 0-2 bên trái, 3-5 bên dưới, 6-8 bên phải
   function traySpot(L, i) {
-    var left = i < 5, k = left ? i : i - 5;
-    var baseX = left ? L.leftX : L.rightX;
-    if (L.trayCols === 2) {
-      var col = k % 2, row = (k / 2) | 0;
-      return { x: baseX + col * PSLOT + PSLOT / 2, y: L.trayTop + row * PSLOT + PSLOT / 2 };
-    }
-    var step = L.trayStep;
-    return { x: baseX + PSLOT / 2, y: L.trayTop + k * step + PSLOT / 2 };
+    if (i < 3) return { x: L.leftX + PSLOT / 2, y: L.trayTop + i * PSLOT + PSLOT / 2 };
+    if (i < 6) return { x: L.botX + (i - 3) * PSLOT + PSLOT / 2, y: L.botY + PSLOT / 2 };
+    return { x: L.rightX + PSLOT / 2, y: L.trayTop + (i - 6) * PSLOT + PSLOT / 2 };
   }
 
   /* ==================================================================
@@ -454,6 +469,13 @@
     L = pickLayout();
     svg.setAttribute('viewBox', '0 0 ' + L.W + ' ' + L.H);
     svg.innerHTML = '';
+
+    // yc: hàng nút và bộ đếm dóng đúng theo hai mép trái/phải của bàn ghép.
+    // Hai mép cách rìa sân chơi bao nhiêu phần trăm thì lùi vào bấy nhiêu.
+    var wrap = document.querySelector('.wrap');
+    wrap.style.setProperty('--inset-frac', (L.frameX / L.W).toFixed(5));
+    wrap.style.setProperty('--board-frac', (FRAME / L.W).toFixed(5));
+    wrap.style.setProperty('--scene-ar',   (L.W / L.H).toFixed(5));
 
     var sil = silhouette(0, 0);
     var silAbs = translatePath(sil, L.boardX, L.boardY);
@@ -1055,26 +1077,8 @@
       startTimer();
     });
 
-    // đổi bố cục khi xoay màn hình / đổi kích thước
-    var rid = null, mode = (L.trayCols === 2 ? 'wide' : 'tall');
-    window.addEventListener('resize', function () {
-      clearTimeout(rid);
-      rid = setTimeout(function () {
-        var next = (window.innerWidth >= 900) ? 'wide' : 'tall';
-        if (next === mode) return;
-        mode = next;
-        var snapshot = pieces.map(function (p) { return { rot: p.rot, flip: p.flip, placed: p.placed }; });
-        buildScene(); buildPieces();
-        for (var i = 0; i < pieces.length; i++) {
-          var p = pieces[i], s = snapshot[i];
-          p.rot = s.rot; p.flip = s.flip; p.placed = s.placed;
-          if (p.placed) { var t = slotPos(p.id); p.x = t.x; p.y = t.y; }
-          else { var spot = traySpot(L, i); p.x = spot.x; p.y = spot.y; }
-          applySeat(p); applyArt(p); applyPos(p);
-        }
-        renderHud();
-      }, 220);
-    });
+    // Chỉ còn một bố cục và SVG tự co theo bề ngang khung chứa,
+    // nên không cần dựng lại sân chơi khi đổi kích thước cửa sổ.
 
     // API cho kiểm thử tự động
     window.__puzzle = {

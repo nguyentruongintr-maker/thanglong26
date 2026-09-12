@@ -19,7 +19,7 @@
 /* ===================== Bàn cờ ===================== */
 .boardwrap{ display:flex; justify-content:center; }
 .boardcol{
-  --bw: max(250px, min(100%, 528px, calc(100dvh - 306px)));
+  --bw: max(250px, min(100%, 528px, calc(100dvh - 324px)));
   width:var(--bw);
   max-width:100%;
   margin:0 auto;
@@ -122,10 +122,25 @@
 }
 .bhud .side{ flex:1 1 0; display:flex; gap:8px; align-items:center; min-width:0 }
 .bhud .side.right{ justify-content:flex-end }
+.bhud .mid{ display:flex; flex-direction:column; align-items:center; gap:1px; flex:none }
 .clock{
   font-size:17px; font-weight:900; color:var(--accent);
   font-variant-numeric:tabular-nums; letter-spacing:.5px; white-space:nowrap;
 }
+/* yc 1: đang ở cấp độ nào, màn thứ mấy trên tổng số màn của cấp đó.
+   yc 2: bấm vào là mở bảng chọn màn, nên nó là cái nút. */
+.lvlnow{
+  appearance:none;
+  font-family:inherit;
+  font-size:11.5px; font-weight:800; color:var(--muted);
+  white-space:nowrap; letter-spacing:.2px;
+  background:none; border:0; padding:2px 4px; margin:0;
+  border-radius:8px; cursor:pointer;
+  transition:color .18s ease, background .18s ease;
+}
+.lvlnow:hover{ color:var(--paper); background:rgba(255,255,255,.10) }
+.lvlnow:focus-visible{ outline:3px solid var(--accent); outline-offset:1px }
+.lvlnow .caret{ font-size:9px; opacity:.8 }
 .errs{ font-size:13px; font-weight:800; color:var(--muted); white-space:nowrap }
 .errs b{ color:var(--accent) }
 .errs b.hot{ color:#ff6a5c }
@@ -177,6 +192,73 @@
 .pick.sel{ box-shadow:0 0 0 3px var(--accent), 0 3px 0 rgba(120,70,35,.5) }
 .pick.done{ opacity:.3; pointer-events:none }
 
+/* ===================== Bảng chọn màn ===================== */
+/* yc 2: đánh số 1..hết theo thứ tự thêm vào, màn nào cũng bấm được */
+.lvlgrid{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:7px;
+  margin:14px 0 4px;
+}
+.lvlbtn{
+  position:relative;
+  appearance:none; cursor:pointer;
+  aspect-ratio:1/1;
+  display:grid; place-items:center;
+  border-radius:12px;
+  border:2px solid var(--glass-line);
+  background:rgba(255,255,255,.07);
+  color:var(--paper);
+  font-family:inherit; font-size:15px; font-weight:900;
+  transition:transform .14s ease, border-color .2s ease, background .2s ease;
+}
+.lvlbtn:hover{ transform:translateY(-2px); background:rgba(255,255,255,.14) }
+.lvlbtn:focus-visible{ outline:3px solid var(--accent); outline-offset:2px }
+/* màn đã giải xong trong phiên này */
+.lvlbtn.done{ border-color:rgba(126,227,160,.7); color:#bff3d2 }
+.lvlbtn.done::after{
+  content:'✓';
+  position:absolute; right:3px; top:1px;
+  font-size:9px; color:#7ee3a0;
+}
+/* màn đang chơi */
+.lvlbtn.now{
+  border-color:var(--accent);
+  background:linear-gradient(160deg,rgba(255,210,63,.30),rgba(242,183,5,.14));
+  box-shadow:0 0 0 3px rgba(255,210,63,.22);
+  color:#fff3cd;
+}
+
+/* ===================== Bảng chọn cấp độ ===================== */
+/* yc 1: mỗi cấp độ một dòng; ba dòng cuối còn trống nên chỉ để nhìn */
+.tiers{ display:grid; gap:8px; margin:14px 0 4px }
+.tieropt{
+  appearance:none; cursor:pointer;
+  display:flex; align-items:center; gap:11px;
+  padding:11px 13px;
+  border-radius:14px;
+  border:2px solid var(--glass-line);
+  background:rgba(255,255,255,.07);
+  color:var(--paper);
+  font-family:inherit;
+  text-align:left;
+  transition:transform .16s ease, border-color .2s ease, background .2s ease;
+}
+.tieropt .ic{ font-size:21px; line-height:1; flex:none }
+.tieropt .tx{ min-width:0 }
+.tieropt .n{ display:block; font-size:16px; font-weight:900; letter-spacing:.3px }
+.tieropt .d{ display:block; margin-top:3px; font-size:11.5px; font-weight:700; color:var(--muted); line-height:1.4 }
+.tieropt:hover{ transform:translateY(-2px); background:rgba(255,255,255,.13) }
+.tieropt:focus-visible{ outline:3px solid var(--accent); outline-offset:2px }
+.tieropt[aria-checked="true"]{
+  border-color:var(--accent);
+  background:linear-gradient(160deg,rgba(255,210,63,.26),rgba(242,183,5,.12));
+  box-shadow:0 0 0 3px rgba(255,210,63,.22);
+}
+.tieropt[aria-checked="true"] .d{ color:#ffe9a8 }
+.tieropt.soon{ cursor:not-allowed; opacity:.42 }
+.tieropt.soon:hover{ transform:none; background:rgba(255,255,255,.07) }
+
 .help-list{ text-align:left; margin:14px 0 0; padding-left:20px; color:#d5e9f7; font-size:14px; line-height:1.7 }
 .help-list li{ margin-bottom:6px }
 .help-list b{ color:var(--accent) }
@@ -211,6 +293,7 @@
       </div>
     </div>
     <div class="actions">
+      <button class="btn" id="btnTier" type="button" aria-label="Chọn cấp độ"><span class="ico">🏅</span><span class="lbl">Cấp độ</span></button>
       <button class="btn" id="btnHelp" type="button" aria-label="Hướng dẫn"><span class="ico">ℹ️</span><span class="lbl">Hướng dẫn</span></button>
       <button class="btn btn-danger" id="btnReset" type="button" aria-label="Chơi lại màn"><span class="ico">↻</span><span class="lbl">Chơi lại</span></button>
       <a class="btn" href="../index.html" aria-label="Về Trang Chủ"><span class="ico">🏠</span><span class="lbl">Về Trang Chủ</span></a>
@@ -227,7 +310,11 @@
         <button class="iconbtn" id="btnErase" type="button"
                 aria-label="Xóa ô" title="Xóa ô">🧽</button>
       </div>
-      <div class="clock" id="statTime">00:00</div>
+      <div class="mid">
+        <button class="lvlnow" id="statLevel" type="button"
+                aria-label="Chọn màn chơi">Luyện tập · Màn 1/13 <span class="caret">▾</span></button>
+        <div class="clock" id="statTime">00:00</div>
+      </div>
       <div class="side right">
         <span class="errs">Lỗi: <b id="statErr">0/3</b></span>
       </div>
@@ -270,7 +357,36 @@
     <p>Màn chơi sẽ được đặt lại từ đầu. Cố lên nhé!</p>
     <div class="modal-actions">
       <button class="btn btn-primary" id="failRetry" type="button">↻ Chơi lại màn này</button>
+      <button class="btn" id="failPick" type="button">📋 Chọn màn khác</button>
       <a class="btn" href="../index.html">🏠 Về Trang Chủ</a>
+    </div>
+  </div>
+</div>
+
+<!-- yc 2 + 3: chọn màn, chơi lại màn này hoặc sang màn kế tiếp -->
+<div class="modal-back" id="lvlBack" role="dialog" aria-modal="true" aria-labelledby="lvlTitle">
+  <div class="modal">
+    <h2 id="lvlTitle">Chọn màn</h2>
+    <p>Màn nào cũng chơi được, không cần mở khoá. Dấu ✓ là màn đã giải xong.</p>
+    <div class="lvlgrid" id="lvlGrid"></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="lvlReplay" type="button">↻ Chơi lại màn này</button>
+      <button class="btn" id="lvlNext" type="button">▶ Màn kế tiếp</button>
+      <button class="btn" id="lvlClose" type="button">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<!-- yc 1: chọn cấp độ chơi -->
+<div class="modal-back" id="tierBack" role="dialog" aria-modal="true" aria-labelledby="tierTitle">
+  <div class="modal">
+    <div class="trophy">🏺</div>
+    <h2 id="tierTitle">Chọn cấp độ</h2>
+    <p>Mỗi cấp độ có bộ đề riêng, mỗi cấp nhớ riêng màn bạn đang chơi.</p>
+    <div class="tiers" id="tiers" role="radiogroup" aria-label="Cấp độ chơi"></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="tierOk" type="button">✔ Xác nhận</button>
+      <button class="btn" id="tierCancel" type="button">Đóng</button>
     </div>
   </div>
 </div>
@@ -286,7 +402,9 @@
       <li>Bật <b>Ghi chú</b> để điền nháp — hiện vật sẽ thu nhỏ nằm quanh mép ô.</li>
       <li>Điền sai thì ô <b>viền đỏ</b>; dùng nút <b>Xóa ô</b> để bỏ đi.</li>
       <li>Sai <b>3 lần</b> thì màn chơi được đặt lại từ đầu.</li>
-      <li>Xong một màn mới được sang màn kế tiếp.</li>
+      <li>Bấm vào dòng <b>cấp độ · Màn x/y</b> ở trên bàn cờ để <b>chọn màn</b>,
+          <b>chơi lại màn này</b> hoặc <b>sang màn kế tiếp</b>.</li>
+      <li>Nút <b>Cấp độ</b> ở hàng trên để đổi giữa <b>Luyện tập</b> và <b>Thi đấu</b>; mỗi cấp độ nhớ riêng màn bạn đang chơi.</li>
     </ol>
     <div class="modal-actions">
       <button class="btn btn-primary" id="helpClose" type="button">Đã hiểu</button>
@@ -299,16 +417,85 @@
   "use strict";
 
   /* ==================================================================
-     1. DỮ LIỆU MÀN CHƠI  (đề bài đọc từ ảnh Màn 1/2/3.jpg,
-        lời giải đã kiểm tra là DUY NHẤT bằng thuật toán quay lui)
+     1. DỮ LIỆU MÀN CHƠI
+     Mỗi cấp độ (tier) có bộ đề riêng; màn được đánh số 1..hết theo đúng thứ
+     tự khai báo ở đây và chọn màn nào chơi trước cũng được (yc 2).
+       - Luyện tập: 13 màn — 3 màn đầu đọc từ ảnh `Màn 1/2/3.jpg`, 10 màn sau
+                    đọc từ các ảnh trong `Cấp luyện tập/` (bản 300 điểm).
+       - Thi đấu:  13 màn, đề đọc từ các ảnh trong `Cấp thi đấu/`
+                   (14 ảnh nhưng có 1 ảnh trùng đề nên chỉ còn 13 màn).
+     Cả 26 đề đều đã kiểm bằng thuật toán quay lui: có lời giải, lời giải là
+     DUY NHẤT, và không đề nào trùng đề nào.
+     Ba dòng cấp độ cuối để trống (`soon`), chờ cập nhật sau.
      ================================================================== */
-  var LEVELS = [
-    { puzzle: "008009460700564038600138200879002306034607520050003874421000050087300000060200701",
-      solution: "318729465792564138645138297879452316134687529256913874421876953587391642963245781" },
-    { puzzle: "207090001010060050056021803032850000674002018000100340501043007369500120748209000",
-      solution: "287395461413768259956421873132854796674932518895176342521643987369587124748219635" },
-    { puzzle: "060071020940628005070093104000840050420307091035100240050706483007900512010280006",
-      solution: "563471829941628735872593164196842357428357691735169248259716483687934512314285976" }
+  var TIERS = [
+    {
+      name: 'Luyện tập', icon: '🌱',
+      desc: 'đề vừa sức, làm quen với 9 hiện vật',
+      levels: [
+        { puzzle: "008009460700564038600138200879002306034607520050003874421000050087300000060200701",
+          solution: "318729465792564138645138297879452316134687529256913874421876953587391642963245781" },
+        { puzzle: "207090001010060050056021803032850000674002018000100340501043007369500120748209000",
+          solution: "287395461413768259956421873132854796674932518895176342521643987369587124748219635" },
+        { puzzle: "060071020940628005070093104000840050420307091035100240050706483007900512010280006",
+          solution: "563471829941628735872593164196842357428357691735169248259716483687934512314285976" },
+        { puzzle: "075000048000790006206430000547000900610049572000570000003017694009003107021904835",
+          solution: "975621348134798256286435719547182963618349572392576481853217694469853127721964835" },
+        { puzzle: "007100062000604015002507040305460008040059307908300406206000574504780230710200000",
+          solution: "457138962839624715162597843375462198641859327928371456286913574594786231713245689" },
+        { puzzle: "034760000000001260106080005840130700200496500060000109050923004692804350013007980",
+          solution: "534762891987541263126389475849135726271496538365278149758923614692814357413657982" },
+        { puzzle: "080100027007000000603857149976000380051408006042603750768000410039001562200064900",
+          solution: "584139627197246835623857149976512384351478296842693751768925413439781562215364978" },
+        { puzzle: "010090700800176059007583026206930000573601000149025000024300600358060004060400873",
+          solution: "615294738832176459497583126286937541573641982149825367724318695358769214961452873" },
+        { puzzle: "003175926761940358590803007028400069050200030430080200680004000000001405204758600",
+          solution: "843175926761942358592863147128437569957216834436589271685394712379621485214758693" },
+        { puzzle: "092000130800305904534009006070021600415863270603000801300087090109050067207036500",
+          solution: "792648135861375924534219786978521643415863279623794851356187492189452367247936518" },
+        { puzzle: "053768194006249573000000208075400006604900080031806000007084602510092430400301800",
+          solution: "253768194186249573749135268875413926624957381931826745397584612518692437462371859" },
+        { puzzle: "005120607306075008724306519592000041001500390430090705007000180000852074000003056",
+          solution: "985124637316975428724386519592637841671548392438291765257469183163852974849713256" },
+        { puzzle: "000419020400650008900020430813204650549008300006105004130506080700300265058072003",
+          solution: "387419526421653978965827431813294657549768312276135894132546789794381265658972143" }
+      ]
+    },
+    {
+      name: 'Thi đấu', icon: '🏅',
+      desc: 'đề thi 500 điểm, ít số cho sẵn hơn',
+      levels: [
+        { puzzle: "010200089000600030840731506690040070030016050200070010700060198184920000005080007",
+          solution: "316254789572698431849731526691542873437816952258379614723465198184927365965183247" },
+        { puzzle: "002000376008937540003420900307010260091060000060700000000150604020640780406073190",
+          solution: "942581376618937542573426918357814269891362457264795831739158624125649783486273195" },
+        { puzzle: "080207109500010760020000540046390080095126403003740906971000805000000090050070604",
+          solution: "684257139539814762127639548746395281895126473213748956971463825462581397358972614" },
+        { puzzle: "790124000600830090200097040040372900020010600100400320061503070070060038402709506",
+          solution: "793124865614835792258697143546372981327918654189456327861543279975261438432789516" },
+        { puzzle: "300570010104680570907240680003000006710408030495000120000007300030060007601300094",
+          solution: "368579412124683579957241683283915746716428935495736128542897361839164257671352894" },
+        { puzzle: "000670542004095306005000810012800004050342700407001603040010038060704005000200067",
+          solution: "193678542824195376675423819312867954956342781487951623749516238268734195531289467" },
+        { puzzle: "609400000140930560008010400400000000070006008010397000301059000082004935954283017",
+          solution: "629475381147938562538612479496821753273546198815397246361759824782164935954283617" },
+        { puzzle: "700140000000900007000002184407260008986307000001098763609500071014000000503816240",
+          solution: "768143925142985637395672184437261598986357412251498763629534871814729356573816249" },
+        { puzzle: "100903528682000000000201004001520049046070050900040100050800070260030891418600030",
+          solution: "174963528682754913593281764731528649846179352925346187359812476267435891418697235" },
+        { puzzle: "860013900100205703250890041030900800928070560000000019504036090782049000090020007",
+          solution: "867413925149265783253897641631954872928371564475682319514736298782549136396128457" },
+        { puzzle: "104030682070008100803219005009004500280650074050700008040920830010300000000070469",
+          solution: "194537682572468193863219745739184526281653974456792318647925831918346257325871469" },
+        { puzzle: "085106070106205004927380000060007049090540000754000800000400735300058010072030008",
+          solution: "485196273136275984927384156263817549891542367754963821618429735349758612572631498" },
+        { puzzle: "000200395170043000290050704040007021907006000300502047702084109009005000460000003",
+          solution: "684271395175943286293658714546837921927416538318592647752384169839165472461729853" }
+      ]
+    },
+    { name: 'Cập nhật sau', icon: '🔒', desc: 'cấp độ đang được chuẩn bị', soon: true },
+    { name: 'Cập nhật sau', icon: '🔒', desc: 'cấp độ đang được chuẩn bị', soon: true },
+    { name: 'Cập nhật sau', icon: '🔒', desc: 'cấp độ đang được chuẩn bị', soon: true }
   ];
   var MAX_ERR = 3;
 
@@ -340,11 +527,21 @@
      2. TRẠNG THÁI
      ================================================================== */
   var els = {}, cells = [], picks = [];
-  var level = 0;                 // chỉ số màn đang chơi (0..2)
+  var tierOpts = [], lvlOpts = [];
+  var tier = 0;                  // cấp độ đang chơi (chỉ số trong TIERS)
+  var pickTier = 0;              // cấp độ đang chọn trong bảng chọn
+  var started = false;           // đã xác nhận cấp độ lần đầu chưa
+  var progress = [];             // mỗi cấp độ nhớ riêng màn đang chơi
+  var solved = [];               // màn nào đã giải xong trong phiên này
+  for (var t0 = 0; t0 < TIERS.length; t0++) { progress.push(0); solved.push({}); }
+  var level = 0;                 // chỉ số màn đang chơi trong cấp độ
   var given = [], value = [], notes = [], solution = [];
   var selected = -1, pickValue = 0, noteMode = false;
   var errors = 0, done = false;
   var timer = { t0: 0, elapsed: 0, running: false, id: null };
+
+  function levels() { return TIERS[tier].levels; }
+  function nLevels() { return levels().length; }
 
   function idx(r, c) { return r * 9 + c; }
   function rowOf(i) { return (i / 9) | 0; }
@@ -381,11 +578,103 @@
   }
 
   /* ==================================================================
+     3b. BẢNG CHỌN CẤP ĐỘ  (yc 1)
+     ================================================================== */
+  function buildTiers() {
+    els.tiers.innerHTML = '';
+    tierOpts = [];
+    for (var i = 0; i < TIERS.length; i++) {
+      var t = TIERS[i];
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'tieropt' + (t.soon ? ' soon' : '');
+      b.setAttribute('role', 'radio');
+      b.setAttribute('aria-checked', 'false');
+      b.dataset.i = i;
+      if (t.soon) { b.disabled = true; b.setAttribute('aria-disabled', 'true'); }
+      b.innerHTML = '<span class="ic">' + t.icon + '</span><span class="tx">' +
+                    '<span class="n">' + t.name + '</span>' +
+                    '<span class="d">' +
+                      (t.soon ? t.desc : t.levels.length + ' màn · ' + t.desc) +
+                    '</span></span>';
+      els.tiers.appendChild(b);
+      tierOpts.push(b);
+    }
+  }
+
+  function markTier(i) {
+    pickTier = i;
+    for (var k = 0; k < tierOpts.length; k++) {
+      tierOpts[k].setAttribute('aria-checked', k === i ? 'true' : 'false');
+    }
+  }
+
+  // Lần đầu vào trang thì bắt buộc chọn: không có nút Đóng, không bấm ra ngoài.
+  function openTierPicker() {
+    markTier(tier);
+    els.tierCancel.style.display = started ? '' : 'none';
+    openModal(els.tierBack);
+  }
+
+  function confirmTier() {
+    closeModal(els.tierBack);
+    if (started && pickTier === tier) return;   // giữ nguyên ván đang chơi
+    tier = pickTier;
+    started = true;
+    loadLevel(progress[tier]);
+    toast('Cấp độ ' + TIERS[tier].name + ' · Màn ' + (level + 1), 'good');
+  }
+
+  /* ==================================================================
+     3c. BẢNG CHỌN MÀN  (yc 2 + 3)
+     Màn được đánh số 1..hết theo đúng thứ tự thêm vào TIERS, chọn màn nào
+     cũng được — không phải giải xong màn trước mới mở được màn sau.
+     ================================================================== */
+  function buildLvlGrid() {
+    els.lvlGrid.innerHTML = '';
+    lvlOpts = [];
+    for (var i = 0; i < nLevels(); i++) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'lvlbtn';
+      b.dataset.i = i;
+      b.textContent = i + 1;
+      b.setAttribute('aria-label', 'Màn ' + (i + 1));
+      els.lvlGrid.appendChild(b);
+      lvlOpts.push(b);
+    }
+    for (var k = 0; k < lvlOpts.length; k++) {
+      lvlOpts[k].classList.toggle('now', k === level);
+      lvlOpts[k].classList.toggle('done', !!solved[tier][k]);
+      if (k === level) lvlOpts[k].setAttribute('aria-current', 'true');
+    }
+  }
+
+  function openLvlPicker() {
+    els.lvlTitle.textContent = 'Chọn màn — ' + TIERS[tier].name;
+    buildLvlGrid();
+    els.lvlNext.disabled = (level >= nLevels() - 1);
+    els.lvlReplay.textContent = '↻ Chơi lại Màn ' + (level + 1);
+    openModal(els.lvlBack);
+  }
+
+  // yc 3: đi tới một màn bất kỳ — dùng cho cả chọn số, chơi lại, màn kế tiếp
+  function goLevel(n) {
+    if (n < 0 || n > nLevels() - 1) return;
+    closeModal(els.lvlBack);
+    closeModal(els.winBack);
+    closeModal(els.failBack);
+    loadLevel(n);
+    toast(TIERS[tier].name + ' · Màn ' + (n + 1), 'good');
+  }
+
+  /* ==================================================================
      4. NẠP MÀN
      ================================================================== */
   function loadLevel(n) {
     level = n;
-    var L = LEVELS[n];
+    progress[tier] = n;          // đổi cấp độ rồi quay lại thì về đúng màn này
+    var L = levels()[n];
     given = []; value = []; notes = []; solution = [];
     for (var i = 0; i < 81; i++) {
       var g = +L.puzzle[i];
@@ -458,6 +747,8 @@
   }
 
   function renderHud() {
+    els.statLevel.innerHTML = TIERS[tier].name + ' · Màn ' + (level + 1) + '/' + nLevels() +
+                              ' <span class="caret">▾</span>';
     els.statErr.textContent = errors + '/' + MAX_ERR;
     els.statErr.classList.toggle('hot', errors > 0);
     els.btnNote.classList.toggle('on', noteMode);
@@ -537,31 +828,46 @@
     selected = -1;
     renderHighlight();
     confetti();
-    var last = (level === LEVELS.length - 1);
-    els.winTitle.textContent = last ? 'Hoàn thành cả 3 màn!' : 'Hoàn thành Màn ' + (level + 1) + '!';
+    var total = nLevels();
+    var last = (level === total - 1);
+    var justDone = level;                 // giữ lại số màn vừa xong cho các nút
+    solved[tier][justDone] = true;
+    els.winTitle.textContent = 'Hoàn thành Màn ' + (justDone + 1) + '!';
     els.winMsg.textContent = last
-      ? 'Bạn đã đi hết Thiên Niên Sử. Xin chúc mừng!'
+      ? 'Bạn đã đi hết ' + total + ' màn của cấp độ ' + TIERS[tier].name + '. Xin chúc mừng!'
       : 'Bạn đã xếp đủ 81 hiện vật vào đúng vị trí.';
     els.winStats.textContent = 'Thời gian: ' + fmt(timer.elapsed) + ' · Lỗi: ' + errors + '/' + MAX_ERR;
+
+    // yc 3: xong một màn thì chọn chơi lại chính màn đó, hay sang màn kế tiếp
     els.winActions.innerHTML = '';
     if (!last) {
-      var nx = document.createElement('button');
-      nx.className = 'btn btn-primary'; nx.type = 'button';
-      nx.textContent = '▶ Sang Màn ' + (level + 2);
-      nx.addEventListener('click', function () { loadLevel(level + 1); });
-      els.winActions.appendChild(nx);
+      winBtn('▶ Sang Màn ' + (justDone + 2), 'btn btn-primary', function () { goLevel(justDone + 1); });
+      winBtn('↻ Chơi lại Màn ' + (justDone + 1), 'btn', function () { goLevel(justDone); });
     } else {
-      var again = document.createElement('button');
-      again.className = 'btn btn-primary'; again.type = 'button';
-      again.textContent = '↻ Chơi lại từ Màn 1';
-      again.addEventListener('click', function () { loadLevel(0); });
-      els.winActions.appendChild(again);
+      winBtn('↻ Chơi lại Màn ' + (justDone + 1), 'btn btn-primary', function () { goLevel(justDone); });
+      winBtn('🏅 Chọn cấp độ khác', 'btn', function () {
+        closeModal(els.winBack);
+        openTierPicker();
+      });
     }
+    winBtn('📋 Chọn màn', 'btn', function () {
+      closeModal(els.winBack);
+      openLvlPicker();
+    });
     var home = document.createElement('a');
     home.className = 'btn'; home.href = '../index.html';
     home.textContent = '🏠 Về Trang Chủ';
     els.winActions.appendChild(home);
     openModal(els.winBack);
+  }
+
+  function winBtn(label, cls, fn) {
+    var b = document.createElement('button');
+    b.className = cls; b.type = 'button';
+    b.textContent = label;
+    b.addEventListener('click', fn);
+    els.winActions.appendChild(b);
+    return b;
   }
 
   /* ==================================================================
@@ -622,15 +928,20 @@
      8. KHỞI ĐỘNG
      ================================================================== */
   function init() {
-    ['grid', 'picker', 'statTime', 'statErr', 'toasts',
-     'btnHelp', 'btnReset', 'btnNote', 'btnErase',
+    ['grid', 'picker', 'statTime', 'statLevel', 'statErr', 'toasts',
+     'btnHelp', 'btnReset', 'btnNote', 'btnErase', 'btnTier',
      'winBack', 'winTitle', 'winMsg', 'winStats', 'winActions',
-     'failBack', 'failRetry', 'helpBack', 'helpClose'].forEach(function (id) {
+     'failBack', 'failRetry', 'failPick', 'helpBack', 'helpClose',
+     'tierBack', 'tiers', 'tierOk', 'tierCancel',
+     'lvlBack', 'lvlTitle', 'lvlGrid', 'lvlReplay', 'lvlNext', 'lvlClose'].forEach(function (id) {
       els[id] = document.getElementById(id);
     });
 
     build();
+    buildTiers();
     loadLevel(0);
+    // yc 1: vào trang là chọn cấp độ trước, mặc định đang ở Luyện tập
+    openTierPicker();
 
     els.grid.addEventListener('click', function (e) {
       var c = e.target.closest('.cell');
@@ -647,6 +958,35 @@
       renderPicker();
     });
 
+    els.tiers.addEventListener('click', function (e) {
+      var b = e.target.closest('.tieropt');
+      if (!b || b.disabled) return;
+      markTier(+b.dataset.i);
+    });
+    els.btnTier.addEventListener('click', openTierPicker);
+
+    // yc 2 + 3: dòng "cấp độ · Màn x/y" là cửa vào bảng chọn màn
+    els.statLevel.addEventListener('click', openLvlPicker);
+    els.lvlGrid.addEventListener('click', function (e) {
+      var b = e.target.closest('.lvlbtn');
+      if (b) goLevel(+b.dataset.i);
+    });
+    els.lvlReplay.addEventListener('click', function () { goLevel(level); });
+    els.lvlNext.addEventListener('click', function () { goLevel(level + 1); });
+    els.lvlClose.addEventListener('click', function () { closeModal(els.lvlBack); });
+    els.lvlBack.addEventListener('click', function (e) {
+      if (e.target === els.lvlBack) closeModal(els.lvlBack);
+    });
+    els.failPick.addEventListener('click', function () {
+      closeModal(els.failBack);
+      openLvlPicker();
+    });
+    els.tierOk.addEventListener('click', confirmTier);
+    els.tierCancel.addEventListener('click', function () { closeModal(els.tierBack); });
+    els.tierBack.addEventListener('click', function (e) {
+      if (started && e.target === els.tierBack) closeModal(els.tierBack);
+    });
+
     els.btnNote.addEventListener('click', function () { noteMode = !noteMode; renderHud(); });
     els.btnErase.addEventListener('click', erase);
     els.btnReset.addEventListener('click', resetLevel);
@@ -659,6 +999,15 @@
 
     document.addEventListener('keydown', function (e) {
       if (els.helpBack.classList.contains('show')) { if (e.key === 'Escape') closeModal(els.helpBack); return; }
+      if (els.lvlBack.classList.contains('show')) {
+        if (e.key === 'Escape') closeModal(els.lvlBack);
+        return;
+      }
+      if (els.tierBack.classList.contains('show')) {
+        if (e.key === 'Escape' && started) closeModal(els.tierBack);
+        if (e.key === 'Enter') confirmTier();
+        return;
+      }
       if (done || selected < 0) return;
       if (e.key >= '1' && e.key <= '9') { place(+e.key); renderPicker(); return; }
       if (e.key === 'Backspace' || e.key === 'Delete') { e.preventDefault(); erase(); return; }
@@ -671,6 +1020,17 @@
 
     // API cho kiểm thử tự động
     window.__sudoku = {
+      get tier() { return tier; },
+      get tierName() { return TIERS[tier].name; },
+      get nLevels() { return nLevels(); },
+      get progress() { return progress; },
+      get solved() { return solved; },
+      goLevel: goLevel,
+      tiers: function () { return TIERS; },
+      setTier: function (i, lv) {
+        tier = i; started = true;
+        loadLevel(typeof lv === 'number' ? lv : progress[i]);
+      },
       get level() { return level; },
       get errors() { return errors; },
       get done() { return done; },

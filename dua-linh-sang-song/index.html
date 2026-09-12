@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Đưa Lính Sang Sông — Thăng Long 26</title>
-<meta name="description" content="Trò chơi giải đố năng lượng: đưa một người lính đi lấy lá cờ rồi cả đội cùng quay về vạch xuất phát.">
+<title>Mãi Lộ Qua Sông — Thăng Long 26</title>
+<meta name="description" content="Trò chơi giải đố: chia quan tiền để đưa lính qua sông giành lá cờ rồi cả đội cùng quay về vạch xuất phát.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='12' y='6' width='7.5' height='88' rx='3.7' fill='%234a3526'/%3E%3Ccircle cx='15.7' cy='5' r='5.4' fill='%23f2c014'/%3E%3Cpath d='M19 12 H83 L93 18.4 L83 24.8 L93 31.2 L83 37.6 L93 44 L83 50.4 L93 56.8 L83 63.2 L93 69.6 L83 76 H19 Z' fill='%23f2c014'/%3E%3Crect x='19' y='12' width='64' height='64' fill='%23d93a2b'/%3E%3Crect x='25.4' y='18.4' width='51.2' height='51.2' fill='%23f2c014'/%3E%3Crect x='31.8' y='24.8' width='38.4' height='38.4' fill='%232f9e4f'/%3E%3Crect x='38.2' y='31.2' width='25.6' height='25.6' fill='%23f5efe0'/%3E%3Crect x='44.6' y='37.6' width='12.8' height='12.8' fill='%232a6fb0'/%3E%3Crect x='19' y='12' width='64' height='64' fill='none' stroke='%235a2b18' stroke-width='1.408' opacity='.45'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="../assets/shell.css">
 <style>
@@ -157,7 +157,7 @@
 
 .duck.empty .duck-body svg{filter:drop-shadow(0 7px 9px rgba(0,30,50,.32)) saturate(.4) brightness(.82)}
 
-/* energy badge */
+/* thẻ quan tiền của mỗi người lính */
 .badge{
   position:absolute;
   left:calc(100% + 5px);
@@ -177,7 +177,9 @@
   box-shadow:0 3px 8px rgba(0,30,50,.28);
   transition:background .2s ease, color .2s ease;
 }
-.badge .bolt{font-style:normal;font-size:.8em}
+.badge .coin{width:1.15em;height:1.15em;flex:none;display:block}
+/* đồng tiền dùng chung cho dòng "đang chọn", thẻ bay khi chuyền tiền */
+.coin{width:1em;height:1em;vertical-align:-.14em}
 .badge.low{background:#ffd9d3;color:#9e2b1a}
 .badge.zero{background:#5d6b76;color:#e6eef4}
 .badge.bump{animation:bump .4s cubic-bezier(.3,1.4,.5,1)}
@@ -371,7 +373,7 @@
     <div class="brand">
       <div class="brand-mark"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="12" y="6" width="7.5" height="88" rx="3.7" fill="#4a3526"/><circle cx="15.7" cy="5" r="5.4" fill="#f2c014"/><path d="M19 12 H83 L93 18.4 L83 24.8 L93 31.2 L83 37.6 L93 44 L83 50.4 L93 56.8 L83 63.2 L93 69.6 L83 76 H19 Z" fill="#f2c014"/><rect x="19" y="12" width="64" height="64" fill="#d93a2b"/><rect x="25.4" y="18.4" width="51.2" height="51.2" fill="#f2c014"/><rect x="31.8" y="24.8" width="38.4" height="38.4" fill="#2f9e4f"/><rect x="38.2" y="31.2" width="25.6" height="25.6" fill="#f5efe0"/><rect x="44.6" y="37.6" width="12.8" height="12.8" fill="#2a6fb0"/><rect x="19" y="12" width="64" height="64" fill="none" stroke="#5a2b18" stroke-width="1.408" opacity=".45"/></svg></div>
       <div class="brand-text">
-        <h1>Đưa Lính Sang Sông</h1>
+        <h1>Mãi Lộ Qua Sông</h1>
         <p>Lấy cờ rồi quay về vạch xuất phát</p>
       </div>
     </div>
@@ -393,7 +395,7 @@
     <div class="stat moves"><span class="k-long">Lượt đi</span><span class="k-short">Lượt</span>: <b id="statMoves">0</b></div>
     <div class="stat"><span class="k-long">Đã rời vạch</span><span class="k-short">Rời vạch</span>: <b id="statLeft">0/4</b></div>
     <div class="stat"><span class="k-long">Đã về vạch</span><span class="k-short">Về vạch</span>: <b id="statHome">0/4</b></div>
-    <div class="stat energy"><span class="k-long">Năng lượng</span><span class="k-short">NL</span>: <b id="statEnergy">400</b></div>
+    <div class="stat coins"><span class="k-long">Quan tiền</span><span class="k-short">Tiền</span>: <b id="statCoins">400</b></div>
   </div>
 
   <div class="panel actionbar">
@@ -401,8 +403,8 @@
     <div class="act-grid">
       <button class="btn act" id="actFwd" type="button" aria-label="Tiến một vạch"><span class="ico">←</span><span>Tiến</span></button>
       <button class="btn act" id="actBack" type="button" aria-label="Lùi một vạch"><span class="ico">→</span><span>Lùi</span></button>
-      <button class="btn act" id="actUp" type="button" aria-label="Chuyền 25 năng lượng cho người lính phía trên"><span class="ico">↑</span><span>Chuyền lên</span></button>
-      <button class="btn act" id="actDown" type="button" aria-label="Chuyền 25 năng lượng cho người lính phía dưới"><span class="ico">↓</span><span>Chuyền xuống</span></button>
+      <button class="btn act" id="actUp" type="button" aria-label="Chuyền 25 quan tiền cho người lính phía trên"><span class="ico">↑</span><span>Chuyền lên</span></button>
+      <button class="btn act" id="actDown" type="button" aria-label="Chuyền 25 quan tiền cho người lính phía dưới"><span class="ico">↓</span><span>Chuyền xuống</span></button>
     </div>
   </div>
 
@@ -414,7 +416,7 @@
   <div class="modal">
     <div class="trophy">🏆</div>
     <h2 id="winTitle">Chúc mừng!</h2>
-    <p>Cả bốn người lính đều đã rời vạch xuất phát, lá cờ hội đã được mang về, và tất cả đã quay lại vạch xuất phát an toàn.</p>
+    <p>Cả bốn người lính đều đã xuống sông, lá cờ hội đã được mang về, và tất cả đã quay lại vạch xuất phát an toàn.</p>
     <p id="winStats" style="color:var(--accent);font-weight:800"></p>
     <div class="modal-actions">
       <button class="btn btn-primary" id="winReplay" type="button">↻ Chơi lại</button>
@@ -426,8 +428,8 @@
 <div class="modal-back" id="stuckBack" role="dialog" aria-modal="true" aria-labelledby="stuckTitle">
   <div class="modal">
     <div class="trophy">😵</div>
-    <h2 id="stuckTitle">Hết năng lượng rồi!</h2>
-    <p>Không người lính nào còn đủ 25 năng lượng để đi tiếp hay chuyền. Thử lại với cách chia năng lượng khác nhé!</p>
+    <h2 id="stuckTitle">Hết quan tiền rồi!</h2>
+    <p>Không người lính nào còn đủ 25 quan tiền để đi tiếp hay chuyền. Thử lại với cách chia tiền khác nhé!</p>
     <div class="modal-actions">
       <button class="btn btn-primary" id="stuckReplay" type="button">↻ Chơi lại</button>
       <a class="btn" href="../index.html">🏠 Về Trang Chủ</a>
@@ -438,11 +440,11 @@
 <div class="modal-back" id="introBack" role="dialog" aria-modal="true" aria-labelledby="introTitle">
   <div class="modal">
     <div class="trophy"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="12" y="6" width="7.5" height="88" rx="3.7" fill="#4a3526"/><circle cx="15.7" cy="5" r="5.4" fill="#f2c014"/><path d="M19 12 H83 L93 18.4 L83 24.8 L93 31.2 L83 37.6 L93 44 L83 50.4 L93 56.8 L83 63.2 L93 69.6 L83 76 H19 Z" fill="#f2c014"/><rect x="19" y="12" width="64" height="64" fill="#d93a2b"/><rect x="25.4" y="18.4" width="51.2" height="51.2" fill="#f2c014"/><rect x="31.8" y="24.8" width="38.4" height="38.4" fill="#2f9e4f"/><rect x="38.2" y="31.2" width="25.6" height="25.6" fill="#f5efe0"/><rect x="44.6" y="37.6" width="12.8" height="12.8" fill="#2a6fb0"/><rect x="19" y="12" width="64" height="64" fill="none" stroke="#5a2b18" stroke-width="1.408" opacity=".45"/></svg></div>
-    <h2 id="introTitle">Đưa Lính Sang Sông</h2>
+    <h2 id="introTitle">Mãi Lộ Qua Sông</h2>
     <ol class="rules-list intro-list">
-      <li>Lấy cờ đưa về.</li>
-      <li>Tất cả lính phải rời vạch xuất phát.</li>
-      <li>Tất cả lính phải quay trở về vạch xuất phát khi đã có cờ.</li>
+      <li>Giành cờ và quay trở về.</li>
+      <li>Tất cả người lính cần phải xuống sông.</li>
+      <li>Tất cả người lính cần trở về vạch xuất phát khi đã lấy được cờ.</li>
     </ol>
     <div class="modal-actions">
       <button class="btn btn-primary" id="introOk" type="button">Xác nhận</button>
@@ -455,11 +457,11 @@
     <h2 id="rulesTitle">Luật chơi</h2>
     <ol class="rules-list">
       <li><b>Giành cờ và quay trở về.</b></li>
-      <li>Tất cả người lính cần <b>rời khỏi vạch xuất phát ít nhất 1 lần</b>.</li>
+      <li>Tất cả người lính cần <b>phải xuống sông</b>.</li>
       <li>Tất cả người lính cần <b>trở về vạch xuất phát</b> khi đã lấy được cờ.</li>
-      <li>Mỗi lần di chuyển mất <b>25 năng lượng</b>.</li>
-      <li>Có thể <b>chuyển năng lượng</b> cho nhau, mỗi lần <b>25 năng lượng</b>.</li>
-      <li>Người lính đã <b>đầy năng lượng</b> sẽ không thể nhận thêm.</li>
+      <li>Mỗi lần di chuyển mất <b>25 quan tiền</b>.</li>
+      <li>Có thể <b>chuyển tiền</b> cho nhau, mỗi lần <b>25 quan tiền</b>.</li>
+      <li>Một người chỉ có thể cầm <b>tối đa 100 quan tiền</b>.</li>
     </ol>
     <p class="rules-note">
       Lưu ý: chỉ chuyền được cho người lính ngay <b>trên</b> hoặc ngay <b>dưới</b> mình,
@@ -477,10 +479,19 @@
   "use strict";
 
   /* ===================== Hằng số ===================== */
+  // Đồng tiền cổ: vành vàng, lỗ vuông ở giữa. Dùng lại ở thẻ quan tiền của
+  // mỗi người lính, dòng "đang chọn" và thẻ bay khi chuyền tiền.
+  var COIN =
+    '<svg class="coin" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+      '<circle cx="12" cy="12" r="10.4" fill="#f2c014" stroke="#a9781c" stroke-width="1.7"/>' +
+      '<circle cx="12" cy="12" r="7.4" fill="none" stroke="#cf9a1d" stroke-width="1.1"/>' +
+      '<rect x="8.9" y="8.9" width="6.2" height="6.2" rx="1.1" fill="#8a5f12"/>' +
+    '</svg>';
+
   var ROWS = 4;          // 4 hàng lính
   var COLS = 5;          // vạch 0 (xuất phát) .. vạch 4 (có cờ)
   var COST = 25;         // mỗi bước đi tốn 25
-  var MAX  = 100;        // trần năng lượng
+  var MAX  = 100;        // trần quan tiền mỗi người cầm được
   var FLAG_ROW = 1;      // hàng thứ 2 tính từ trên xuống
   var FLAG_COL = COLS - 1;
   var MOVE_MS = 470;     // khớp với transition của .duck
@@ -575,7 +586,7 @@
     var ducks = [];
     for (var r = 0; r < ROWS; r++) {
       // face: 1 = quay đầu sang trái (hướng tiến tới cờ), -1 = quay đầu sang phải (hướng lùi)
-      ducks.push({ row: r, col: 0, energy: MAX, hasFlag: false, hasLeft: false, face: 1 });
+      ducks.push({ row: r, col: 0, coins: MAX, hasFlag: false, hasLeft: false, face: 1 });
     }
     return { ducks: ducks, flagTaken: false, selected: null, moves: 0, won: false };
   }
@@ -587,7 +598,7 @@
     var t = d.col + step;
     if (t > COLS - 1) return { ok: false, why: NAMES[d.row] + " đã ở vạch cuối rồi!" };
     if (t < 0)        return { ok: false, why: NAMES[d.row] + " đang ở vạch xuất phát rồi!" };
-    if (d.energy < COST) return { ok: false, why: NAMES[d.row] + " không đủ 25 năng lượng để đi." };
+    if (d.coins < COST) return { ok: false, why: NAMES[d.row] + " không đủ 25 quan tiền để đi." };
     return { ok: true };
   }
 
@@ -596,9 +607,9 @@
     var r = d.row + dr;
     if (r < 0 || r > ROWS - 1) return { ok: false, why: "Không có người lính nào ở hướng này." };
     var o = state.ducks[r];
-    if (o.col !== d.col) return { ok: false, why: "Phải đứng cùng một vạch mới chuyền được năng lượng." };
-    if (d.energy < COST) return { ok: false, why: NAMES[d.row] + " không đủ 25 năng lượng để chuyền." };
-    if (o.energy >= MAX) return { ok: false, why: NAMES[o.row] + " đã đầy 100 năng lượng, không nhận thêm được." };
+    if (o.col !== d.col) return { ok: false, why: "Phải đứng cùng một vạch mới chuyền được quan tiền." };
+    if (d.coins < COST) return { ok: false, why: NAMES[d.row] + " không đủ 25 quan tiền để chuyền." };
+    if (o.coins >= MAX) return { ok: false, why: NAMES[o.row] + " đang cầm đủ 100 quan tiền, không nhận thêm được." };
     return { ok: true };
   }
 
@@ -615,14 +626,14 @@
     return n;
   }
 
-  function totalEnergy() {
+  function totalCoins() {
     var t = 0;
-    for (var i = 0; i < ROWS; i++) t += state.ducks[i].energy;
+    for (var i = 0; i < ROWS; i++) t += state.ducks[i].coins;
     return t;
   }
 
   function isStuck() {
-    for (var i = 0; i < ROWS; i++) if (state.ducks[i].energy >= COST) return false;
+    for (var i = 0; i < ROWS; i++) if (state.ducks[i].coins >= COST) return false;
     return true;
   }
 
@@ -682,7 +693,7 @@
             '<span class="held">' + heldFlagSVG() + '</span>' +
           '</span>' +
         '</span>' +
-        '<span class="badge"><span class="val">100</span><i class="bolt">⚡</i></span>' +
+        '<span class="badge"><span class="val">100</span>' + COIN + '</span>' +
         '<span class="left-tick">✓</span>' +
         '<span class="tag">' + NAMES[i] + '</span>';
       b.addEventListener("click", onDuckClick);
@@ -702,23 +713,23 @@
       el.classList.toggle("carry", d.hasFlag);
       el.classList.toggle("hasleft", d.hasLeft);
       el.classList.toggle("done", done);
-      el.classList.toggle("empty", d.energy === 0);
+      el.classList.toggle("empty", d.coins === 0);
       el.querySelector(".left-tick").textContent = done ? "✓" : "↗";
       el.setAttribute("aria-label",
-        NAMES[i] + ", vạch " + d.col + ", " + d.energy + " năng lượng" +
+        NAMES[i] + ", vạch " + d.col + ", " + d.coins + " quan tiền" +
         (d.hasFlag ? ", đang giữ cờ" : "") +
         (done ? ", đã về vạch xuất phát" : d.hasLeft ? ", đã rời vạch xuất phát" : ""));
 
       var badge = el.querySelector(".badge");
       var val = el.querySelector(".val");
-      if (val.textContent !== String(d.energy)) {
-        val.textContent = d.energy;
+      if (val.textContent !== String(d.coins)) {
+        val.textContent = d.coins;
         badge.classList.remove("bump");
         void badge.offsetWidth;
         badge.classList.add("bump");
       }
-      badge.classList.toggle("low", d.energy > 0 && d.energy <= COST);
-      badge.classList.toggle("zero", d.energy === 0);
+      badge.classList.toggle("low", d.coins > 0 && d.coins <= COST);
+      badge.classList.toggle("zero", d.coins === 0);
     }
 
     els.buoy.classList.toggle("gone", state.flagTaken);
@@ -726,7 +737,7 @@
     els.statMoves.textContent = state.moves;
     els.statLeft.textContent = leftCount() + "/" + ROWS;
     els.statHome.textContent = homeCount() + "/" + ROWS;
-    els.statEnergy.textContent = totalEnergy();
+    els.statCoins.textContent = totalCoins();
 
     renderActions();
   }
@@ -740,7 +751,7 @@
       return;
     }
     var d = state.ducks[s];
-    els.who.innerHTML = "Đang chọn: <b>" + NAMES[s] + "</b> · vạch " + d.col + " · " + d.energy + " ⚡" +
+    els.who.innerHTML = "Đang chọn: <b>" + NAMES[s] + "</b> · vạch " + d.col + " · " + d.coins + " " + COIN +
                         (d.hasFlag ? " · đang giữ cờ" : "");
     setAct(els.actFwd,  canMove(d, +1).ok);
     setAct(els.actBack, canMove(d, -1).ok);
@@ -776,7 +787,7 @@
   function flyChip(col, fromRow, toRow) {
     var c = document.createElement("div");
     c.className = "chip";
-    c.textContent = "25 ⚡";
+    c.innerHTML = "25 " + COIN;
     c.style.left = colX(col) + "%";
     c.style.top = rowY(fromRow) + "%";
     els.fx.appendChild(c);
@@ -841,7 +852,7 @@
     if (!v.ok) { toast(v.why, "bad"); return; }
 
     busy = true;
-    d.energy -= COST;
+    d.coins -= COST;
     d.col += step;
     // Quay đầu theo hướng đi: tiến thì nhìn sang trái, lùi thì nhìn sang phải.
     d.face = step > 0 ? 1 : -1;
@@ -878,8 +889,8 @@
 
     var o = state.ducks[d.row + dr];
     busy = true;
-    d.energy -= COST;
-    o.energy += COST;
+    d.coins -= COST;
+    o.coins += COST;
     flyChip(d.col, d.row, o.row);
     render();
 
@@ -903,14 +914,14 @@
       state.selected = null;
       render();
       confetti();
-      els.winStats.textContent = "Hoàn thành trong " + state.moves + " lượt đi · còn " + totalEnergy() + " ⚡";
+      els.winStats.textContent = "Hoàn thành trong " + state.moves + " lượt đi · còn " + totalCoins() + " quan tiền";
       openModal(els.winBack);
       return;
     }
     // Nhắc việc còn thiếu, chỉ khi chính chú giữ cờ vừa về tới vạch xuất phát.
     if (!state.won && c && c.col === 0 && d === c) {
       if (leftCount() < ROWS) {
-        toast("Đã mang cờ về, nhưng vẫn còn lính chưa rời vạch xuất phát!", "bad");
+        toast("Đã mang cờ về, nhưng vẫn còn lính chưa xuống sông!", "bad");
       } else if (homeCount() < ROWS) {
         toast("Đã có cờ! Giờ đưa nốt những người lính còn lại về vạch xuất phát.", "bad");
       }
@@ -939,7 +950,7 @@
   /* ===================== Khởi động ===================== */
   function init() {
     ["board", "ruler", "fx", "toasts", "who",
-     "statMoves", "statLeft", "statHome", "statEnergy",
+     "statMoves", "statLeft", "statHome", "statCoins",
      "actFwd", "actBack", "actUp", "actDown",
      "btnReset", "btnRules", "winBack", "stuckBack", "rulesBack",
      "winReplay", "stuckReplay", "rulesClose", "winStats",

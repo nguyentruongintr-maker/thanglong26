@@ -13,7 +13,7 @@ mai-lo-qua-song/        Trò chơi 1 — Mãi Lộ Qua Sông (tên cũ: Đưa L�
 manh-ghep-vo-cuc/       Trò chơi 2 — Mảnh Ghép Vô Cực
 thien-nien-su-sudoku/   Trò chơi 3 — Thiên Niên Sử Sudoku (kèm img/1..9.png)
 ky-uc-di-san/           Trò chơi 4 — Ký Ức Di Sản (kèm img/1..16.png)
-van-tu-hoc-si/          Trò chơi 5 — Văn Tự Học Sĩ
+van-tu-hoc-si/          Trò chơi 5 — Văn Tự Học Sĩ (có cửa mật khẩu)
 vercel.json             cleanUrls
 ```
 
@@ -141,9 +141,15 @@ Kết thúc: cả 4 người lính ở vạch 0, quan tiền 0/0/0/0.
 
 - Mỗi màn có **một dòng gợi ý**, một dải **ô trống** và một bộ **thẻ chữ in
   hoa** được xáo trộn (dữ liệu trong mảng `LEVELS`).
-- Số ô trống = **số ký tự của đáp án, không tính dấu cách**. Ô xếp cạnh nhau,
-  tối đa 7 ô một hàng rồi xuống hàng — không có khoảng ngắt giữa các từ.
-- **Kéo thẻ** từ khay lên ô: thả trong bán kính hút (`SNAP` ≈ 0,9 bề ngang ô)
+- Số ô trống = **số ký tự của đáp án, không tính dấu cách**. **Tất cả ô nằm
+  trên một hàng**, không xuống hàng và không có khoảng ngắt giữa các từ: ô hẹp
+  dần theo số chữ (khe hở 2px khi đề dài, ô tối thiểu 12px) để hàng luôn vừa bề
+  ngang bàn — cần vậy vì thẻ đặt theo toạ độ tuyệt đối, hàng ô mà trượt ngang
+  thì thẻ trong ô sẽ lệch.
+- Thẻ ở khay **không co theo ô**: khay giữ thẻ cỡ lớn (30–64px, tối đa 7 thẻ một
+  hàng) cho dễ cầm kéo, đặt vào ô thì thẻ **thu nhỏ đúng cỡ ô**; nhấc khỏi ô thì
+  phồng lại cỡ khay và nằm giữa ngón tay.
+- **Kéo thẻ** từ khay lên ô: thả trong bán kính hút (`SNAP` = 1,2 bề ngang ô, tối thiểu 28px)
   thì thẻ bay vào ô, nhún một nhịp, loé sáng kèm vòng sóng và tia sáng — cùng
   kiểu hiệu ứng ăn khớp của Mảnh Ghép Vô Cực.
 - Trong khay thẻ **kéo thả tự do**, thả đâu nằm đó; thẻ vừa cầm luôn nằm trên
@@ -155,6 +161,20 @@ Kết thúc: cả 4 người lính ở vạch 0, quan tiền 0/0/0/0.
   rồi thử tiếp — không giới hạn số lần.
 - Thẻ nằm trên một lớp tuyệt đối của `.field`, vị trí trong khay ghi bằng phân
   số `fx`/`fy` của lòng khay, nên đổi cỡ màn hình vẫn giữ đúng chỗ.
+
+### Mật khẩu
+
+- Trò này có **cửa mật khẩu**: mở trang là hiện hộp nhập, đúng mật khẩu mới thấy
+  bàn chơi (bàn bị `visibility:hidden` chứ không `display:none` để còn đo được
+  kích thước ô). Mật khẩu hiện tại: **`Thanglong26`** (phân biệt hoa thường, tự
+  bỏ khoảng trắng hai đầu).
+- **Đây chỉ là cửa chắn, không phải bảo mật thật.** Trang tĩnh không có máy chủ
+  nên mọi thứ đều nằm ở máy người chơi: mã chỉ lưu **dấu băm** của mật khẩu
+  (`PASS_HASH`) nên người xem mã nguồn không đọc ra ngay, nhưng ai biết mở
+  DevTools thì vẫn vào được, và đáp án cũng nằm trong mã. Đừng dùng cách này để
+  giữ thứ gì thật sự cần kín.
+- **Đổi mật khẩu:** mở trò, trong Console chạy `__game.hash('mật khẩu mới')` rồi
+  dán kết quả vào hằng `PASS_HASH`.
 
 ### Màn 1
 

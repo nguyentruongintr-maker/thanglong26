@@ -42,17 +42,18 @@
   -webkit-user-select:none;
 }
 
-/* --- dải ô trống --- */
+/* --- dải ô trống: yc 1 — TẤT CẢ ô nằm trên cùng một hàng --- */
 .slots{
-  display:flex; flex-wrap:wrap;
+  display:flex; flex-wrap:nowrap;
   justify-content:center;
   gap:var(--gap,7px);
   margin:0 auto 14px;
 }
 .slot{
   position:relative;
-  width:var(--cw,46px); height:var(--ch,56px);
-  border-radius:10px;
+  flex:none;
+  width:var(--sw,46px); height:var(--sh,56px);
+  border-radius:min(10px, calc(var(--sw,46px) * .26));
   background:
     linear-gradient(180deg, rgba(4,16,28,.55), rgba(4,16,28,.28));
   border:2px solid rgba(255,255,255,.22);
@@ -108,24 +109,35 @@
 .tilelayer{ position:absolute; inset:0; pointer-events:none; z-index:4 }
 .tile{
   position:absolute; left:0; top:0;
-  width:var(--cw,46px); height:var(--ch,56px);
+  width:var(--tw,46px); height:var(--th,56px);
   padding:0; margin:0; border:0; background:none;
   pointer-events:auto;
   touch-action:none;
   cursor:grab;
   z-index:1;
-  transition:transform .22s cubic-bezier(.3,1.1,.4,1);
+  font-size:calc(var(--tw,46px) * .56);
+  transition:transform .22s cubic-bezier(.3,1.1,.4,1),
+             width .22s cubic-bezier(.3,1.1,.4,1),
+             height .22s cubic-bezier(.3,1.1,.4,1),
+             font-size .22s cubic-bezier(.3,1.1,.4,1);
 }
+/* thẻ đã nằm trong ô thì thu về đúng cỡ ô, chữ nhỏ theo */
+.tile.inslot{
+  width:var(--sw,46px); height:var(--sh,56px);
+  /* ô hẹp nên chữ lấy tỉ lệ lớn hơn thẻ ở khay cho còn đọc được */
+  font-size:calc(var(--sw,46px) * .72);
+}
+.tile.inslot .face{ border-radius:min(10px, calc(var(--sw,46px) * .26)) }
 .tile.dragging{ cursor:grabbing; z-index:9; transition:none }
 .tile.noanim{ transition:none }
 .tile .face{
   display:grid; place-items:center;
   width:100%; height:100%;
-  border-radius:10px;
+  border-radius:min(10px, calc(var(--tw,46px) * .22));
   background:linear-gradient(168deg, var(--tile-1), var(--tile-2));
   color:var(--ink);
   font-family:inherit;
-  font-size:calc(var(--cw,46px) * .56);
+  font-size:inherit;
   font-weight:900;
   line-height:1;
   letter-spacing:.5px;
@@ -164,8 +176,8 @@
 .fx{ position:absolute; inset:0; pointer-events:none; z-index:8; overflow:visible }
 .ring{
   position:absolute;
-  width:var(--cw,46px); height:var(--cw,46px);
-  margin:calc(var(--cw,46px) / -2) 0 0 calc(var(--cw,46px) / -2);
+  width:var(--sw,46px); height:var(--sw,46px);
+  margin:calc(var(--sw,46px) / -2) 0 0 calc(var(--sw,46px) / -2);
   border-radius:50%;
   border:3px solid rgba(255,217,168,.95);
   animation:snapRing .55s cubic-bezier(.2,.85,.3,1) forwards;
@@ -207,6 +219,35 @@
   margin:14px 0 0;
 }
 
+/* ===================== Cửa mật khẩu (yc 2) ===================== */
+/* Bàn chơi ẩn nhưng vẫn chiếm chỗ (visibility) để còn đo được kích thước ô. */
+body.locked .hintbar,
+body.locked .bhud,
+body.locked .field,
+body.locked .actionbar{ visibility:hidden }
+.pwinput{
+  width:100%;
+  margin:14px 0 0;
+  padding:13px 15px;
+  font-family:inherit; font-size:16px; font-weight:800;
+  letter-spacing:1px; text-align:center;
+  color:var(--ink);
+  background:#fdfaf5;
+  border:2px solid var(--glass-line);
+  border-radius:14px;
+}
+.pwinput:focus{ outline:3px solid var(--accent); outline-offset:2px; border-color:transparent }
+.pwerr{
+  min-height:20px; margin:8px 0 0 !important;
+  font-size:13px; font-weight:800; color:#ff8f83 !important;
+}
+.modal.shake{ animation:pwshake .38s ease-in-out }
+@keyframes pwshake{
+  0%,100%{ transform:translateX(0) }
+  25%{ transform:translateX(-8px) }
+  75%{ transform:translateX(8px) }
+}
+
 .rules-list{ text-align:left; margin:14px 0 0; padding-left:20px; color:#d5e9f7; font-size:14px; line-height:1.7 }
 .rules-list li{ margin-bottom:6px }
 .rules-list b{ color:var(--accent) }
@@ -228,7 +269,7 @@
 }
 </style>
 </head>
-<body>
+<body class="locked">
 <div class="wrap">
 
   <header class="topbar">
@@ -281,6 +322,25 @@
 
 <div class="toast-host" id="toasts" aria-live="polite"></div>
 
+<!-- yc 2: cửa mật khẩu, hiện ngay trước khi vào chơi -->
+<div class="modal-back show" id="lockBack" role="dialog" aria-modal="true" aria-labelledby="lockTitle">
+  <div class="modal" id="lockModal">
+    <div class="trophy">🔒</div>
+    <h2 id="lockTitle">Trò chơi có mật khẩu</h2>
+    <p>Nhập mật khẩu để vào <b>Văn Tự Học Sĩ</b>.</p>
+    <form id="lockForm" autocomplete="off">
+      <input class="pwinput" id="lockInput" type="password" name="vths-pass"
+             placeholder="Mật khẩu" aria-label="Mật khẩu" autocomplete="off"
+             autocapitalize="off" spellcheck="false">
+      <p class="pwerr" id="lockErr" role="alert"></p>
+      <div class="modal-actions">
+        <button class="btn btn-primary" type="submit">🔓 Vào chơi</button>
+        <a class="btn" href="../index.html">🏠 Về Trang Chủ</a>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- Thắng màn -->
 <div class="modal-back" id="winBack" role="dialog" aria-modal="true" aria-labelledby="winTitle">
   <div class="modal">
@@ -332,6 +392,50 @@
   ];
 
   /* ==================================================================
+     1b. CỬA MẬT KHẨU  (yc 2 + 3)
+     Đây là trang tĩnh, không có máy chủ, nên đây chỉ là CỬA CHẮN: mật khẩu
+     không nằm dạng chữ trong mã (chỉ lưu dấu băm để người xem mã nguồn
+     không đọc ra ngay), nhưng ai biết mở devtools thì vẫn vượt được. Đừng
+     dùng cách này để giữ thứ gì thật sự cần bảo mật.
+     ================================================================== */
+  var PASS_HASH = '3d6c018dcc168654:11';
+
+  function passHash(str) {
+    var h1 = 0x811c9dc5, h2 = 0x01000193;
+    for (var i = 0; i < str.length; i++) {
+      var c = str.charCodeAt(i);
+      h1 = Math.imul(h1 ^ c, 16777619) >>> 0;
+      h2 = Math.imul((h2 + c) >>> 0, 2654435761) >>> 0;
+      h2 = (h2 ^ (h2 >>> 7)) >>> 0;
+    }
+    var hex = function (v) { return ('00000000' + v.toString(16)).slice(-8); };
+    return hex(h1) + hex(h2) + ':' + str.length;
+  }
+
+  function unlock() {
+    document.body.classList.remove('locked');
+    closeModal(els.lockBack);
+    relayout();
+  }
+
+  function tryUnlock() {
+    var v = (els.lockInput.value || '').trim();
+    if (passHash(v) === PASS_HASH) {
+      els.lockErr.textContent = '';
+      unlock();
+      toast('Mời Học Sĩ vào bàn! 📜', 'good');
+      return;
+    }
+    els.lockErr.textContent = v ? 'Mật khẩu chưa đúng, thử lại nhé.' : 'Hãy nhập mật khẩu.';
+    els.lockModal.classList.remove('shake');
+    void els.lockModal.offsetWidth;
+    els.lockModal.classList.add('shake');
+    els.lockInput.select();
+  }
+
+  function locked() { return document.body.classList.contains('locked'); }
+
+  /* ==================================================================
      2. TRẠNG THÁI
      ================================================================== */
   var els = {}, level = 0;
@@ -344,7 +448,9 @@
   var hot = -1;                  // ô đang được nhắm tới
   var done = false;
   var placeCount = 0;
-  var CW = 46, CH = 56, GAP = 7, PER_ROW = 6, SNAP = 40;
+  var SW = 46, SH = 56;          // cỡ một ô chữ
+  var TW = 46, TH = 56;          // cỡ một thẻ khi còn trong khay
+  var GAP = 7, PER_ROW = 6, SNAP = 40;
   var zTop = 1;                  // thẻ vừa cầm được xếp lên trên các thẻ khác
   var geo = { tray: null };
   var timer = { t0: 0, elapsed: 0, running: false, id: null };
@@ -425,24 +531,32 @@
     var n = answer.length || 1;
     var W = els.field.clientWidth;
 
-    // Chia ô ra tối đa 7 ô một hàng để ô không bị bé quá trên điện thoại
-    var rows = Math.ceil(n / 7);
-    PER_ROW = Math.ceil(n / rows);
-    GAP = W < 420 ? 5 : 7;
-    CW = Math.floor((W - (PER_ROW - 1) * GAP) / PER_ROW);
-    CW = clamp(CW, 26, 64);
-    CH = Math.round(CW * 1.2);
-    SNAP = Math.round(CW * 0.9);
+    // yc 1: cả n ô nằm gọn trên MỘT hàng, nên ô hẹp dần theo số chữ. Khe hở
+    // thu lại khi đề dài để ô còn chỗ mà to ra.
+    GAP = n > 14 ? 2 : (n > 10 ? 4 : 6);
+    SW = Math.floor((W - (n - 1) * GAP) / n);
+    SW = clamp(SW, 12, 64);
+    SH = Math.round(SW * 1.25);
 
-    els.field.style.setProperty('--cw', CW + 'px');
-    els.field.style.setProperty('--ch', CH + 'px');
+    // Thẻ trong khay KHÔNG co theo ô: giữ cỡ đủ lớn để cầm kéo cho thoải mái,
+    // xếp tối đa 7 thẻ một hàng.
+    var trayRows = Math.ceil(tiles.length / 7) || 1;
+    PER_ROW = Math.ceil((tiles.length || 1) / trayRows);
+    var tgap = W < 420 ? 5 : 7;
+    TW = Math.floor((W - (PER_ROW - 1) * tgap - 24) / PER_ROW);
+    TW = clamp(TW, 30, 64);
+    TH = Math.round(TW * 1.25);
+    SNAP = Math.max(Math.round(SW * 1.2), 28);
+
+    els.field.style.setProperty('--sw', SW + 'px');
+    els.field.style.setProperty('--sh', SH + 'px');
+    els.field.style.setProperty('--tw', TW + 'px');
+    els.field.style.setProperty('--th', TH + 'px');
     els.field.style.setProperty('--gap', GAP + 'px');
-    els.slots.style.width = (PER_ROW * CW + (PER_ROW - 1) * GAP) + 'px';
+    els.slots.style.width = (n * SW + (n - 1) * GAP) + 'px';
 
-    // Khay đủ chỗ cho tất cả thẻ, xếp cùng số cột với dải ô
-    var trayRows = Math.ceil(tiles.length / PER_ROW);
     var pad = 12;
-    els.tray.style.height = (trayRows * CH + (trayRows - 1) * GAP + pad * 2) + 'px';
+    els.tray.style.height = (trayRows * TH + (trayRows - 1) * tgap + pad * 2) + 'px';
 
     var fr = els.field.getBoundingClientRect();
     var tr = els.tray.getBoundingClientRect();
@@ -468,7 +582,7 @@
   function arrangeTray(list) {
     var per = PER_ROW;
     var rows = Math.ceil(tiles.length / per) || 1;
-    var freeX = Math.max(0, geo.tray.w - CW), freeY = Math.max(0, geo.tray.h - CH);
+    var freeX = Math.max(0, geo.tray.w - TW), freeY = Math.max(0, geo.tray.h - TH);
     for (var i = 0; i < list.length; i++) {
       var r = Math.floor(i / per), c = i % per;
       var inRow = Math.min(per, tiles.length - r * per);
@@ -495,11 +609,11 @@
   function tileTarget(t) {
     if (t.slot >= 0) {
       var c = slotCenter(t.slot);
-      return { x: c.x - CW / 2, y: c.y - CH / 2 };
+      return { x: c.x - SW / 2, y: c.y - SH / 2 };
     }
     return {
-      x: geo.tray.x + t.fx * Math.max(0, geo.tray.w - CW),
-      y: geo.tray.y + t.fy * Math.max(0, geo.tray.h - CH)
+      x: geo.tray.x + t.fx * Math.max(0, geo.tray.w - TW),
+      y: geo.tray.y + t.fy * Math.max(0, geo.tray.h - TH)
     };
   }
 
@@ -516,6 +630,7 @@
       if (drag && drag.id === t.id) continue;      // thẻ đang theo ngón tay
       var p = tileTarget(t);
       moveTile(t, p.x, p.y);
+      t.el.classList.toggle('inslot', t.slot >= 0);
       t.face.style.setProperty('--rot', (t.slot >= 0 ? 0 : t.rot) + 'deg');
       t.el.classList.toggle('sel', sel === t.id);
       t.el.classList.toggle('win', done);
@@ -603,15 +718,18 @@
      7. KÉO THẢ
      ================================================================== */
   function onTileDown(e) {
-    if (done) return;
+    if (done || locked()) return;
     var t = tiles[+e.currentTarget.dataset.id];
     var fr = els.field.getBoundingClientRect();
     var p = tileTarget(t);
+    var lifted = t.slot >= 0;
     drag = {
       id: t.id, moved: false,
-      dx: (e.clientX - fr.left) - p.x,
-      dy: (e.clientY - fr.top) - p.y
+      // nhấc khỏi ô: thẻ phồng lại cỡ khay nên cho nó nằm giữa ngón tay luôn
+      dx: lifted ? TW / 2 : (e.clientX - fr.left) - p.x,
+      dy: lifted ? TH / 2 : (e.clientY - fr.top) - p.y
     };
+    if (lifted) t.el.classList.remove('inslot');
     t.el.classList.add('dragging');
     t.el.style.zIndex = ++zTop;
     t.el.setPointerCapture(e.pointerId);
@@ -632,7 +750,7 @@
       drag.moved = true;
     }
     moveTile(t, x, y);
-    var h = nearestSlot(x + CW / 2, y + CH / 2);
+    var h = nearestSlot(x + TW / 2, y + TH / 2);
     if (h !== hot) { hot = h; render(); }
   }
 
@@ -642,7 +760,7 @@
     var fr = els.field.getBoundingClientRect();
     var x = (e.clientX - fr.left) - drag.dx;
     var y = (e.clientY - fr.top) - drag.dy;
-    var target = nearestSlot(x + CW / 2, y + CH / 2);
+    var target = nearestSlot(x + TW / 2, y + TH / 2);
     var moved = drag.moved;
 
     t.el.classList.remove('dragging');
@@ -660,7 +778,7 @@
     }
     // thả tự do trong khay: giữ đúng chỗ vừa thả (yc 4)
     returnToTray(t);
-    var freeX = Math.max(0, geo.tray.w - CW), freeY = Math.max(0, geo.tray.h - CH);
+    var freeX = Math.max(0, geo.tray.w - TW), freeY = Math.max(0, geo.tray.h - TH);
     t.fx = freeX > 0 ? clamp((x - geo.tray.x) / freeX, 0, 1) : 0.5;
     t.fy = freeY > 0 ? clamp((y - geo.tray.y) / freeY, 0, 1) : 0.5;
     render();
@@ -679,7 +797,7 @@
   }
 
   function onSlotTap(e) {
-    if (done) return;
+    if (done || locked()) return;
     var sl = e.target.closest('.slot');
     if (!sl) return;
     var j = +sl.dataset.i;
@@ -814,11 +932,20 @@
      'statLevel', 'statTime', 'statFill',
      'btnRules', 'btnReset', 'btnShuffle', 'btnClear',
      'winBack', 'winTitle', 'winMsg', 'winKey', 'winStats', 'winActions',
-     'rulesBack', 'rulesClose'].forEach(function (id) {
+     'rulesBack', 'rulesClose',
+     'lockBack', 'lockModal', 'lockForm', 'lockInput', 'lockErr'].forEach(function (id) {
       els[id] = document.getElementById(id);
     });
 
     loadLevel(0);
+
+    // yc 2: chưa nhập đúng mật khẩu thì chưa vào được bàn
+    els.lockForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      tryUnlock();
+    });
+    els.lockInput.addEventListener('input', function () { els.lockErr.textContent = ''; });
+    els.lockInput.focus();
 
     els.slots.addEventListener('click', onSlotTap);
     els.btnReset.addEventListener('click', function () {
@@ -846,7 +973,8 @@
       if (e.target === els.rulesBack) closeModal(els.rulesBack);
     });
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') { closeModal(els.rulesBack); }
+      // Cửa mật khẩu không đóng được bằng Esc
+      if (e.key === 'Escape' && !locked()) { closeModal(els.rulesBack); }
     });
 
     window.addEventListener('resize', relayout);
@@ -881,7 +1009,11 @@
         return done;
       },
       load: loadLevel,
-      elapsed: function () { return timer.elapsed; }
+      elapsed: function () { return timer.elapsed; },
+      get locked() { return locked(); },
+      tryPass: function (v) { els.lockInput.value = v; tryUnlock(); return !locked(); },
+      // Đổi mật khẩu: chạy __game.hash('mật khẩu mới') rồi dán kết quả vào PASS_HASH
+      hash: passHash
     };
   }
 

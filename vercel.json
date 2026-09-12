@@ -1,5 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "cleanUrls": true,
-  "trailingSlash": true
+  "trailingSlash": true,
+  "redirects": [
+    { "source": "/dua-linh-sang-song", "destination": "/mai-lo-qua-song", "permanent": false },
+    { "source": "/dua-linh-sang-song/:path*", "destination": "/mai-lo-qua-song/:path*", "permanent": false }
+  ]
 }

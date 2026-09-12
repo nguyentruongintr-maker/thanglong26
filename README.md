@@ -7,8 +7,9 @@ Static site (no build step) hosting small browser games. Deployed free on Vercel
 ```
 index.html              Trang chủ — lưới ô vuông, mỗi ô là một trò chơi
 assets/shell.css        Style dùng chung (nền, nút, modal, toast)
-dua-linh-sang-song/     Trò chơi 1 — Mãi Lộ Qua Sông (tên cũ: Đưa Lính Sang Sông,
-                        giữ nguyên tên thư mục để không đổi đường dẫn)
+mai-lo-qua-song/        Trò chơi 1 — Mãi Lộ Qua Sông (tên cũ: Đưa Lính Sang Sông,
+                        thư mục cũ `dua-linh-sang-song/` được chuyển hướng
+                        trong vercel.json để link đã chia sẻ không chết)
 manh-ghep-vo-cuc/       Trò chơi 2 — Mảnh Ghép Vô Cực
 thien-nien-su-sudoku/   Trò chơi 3 — Thiên Niên Sử Sudoku (kèm img/1..9.png)
 ky-uc-di-san/           Trò chơi 4 — Ký Ức Di Sản (kèm img/1..16.png)

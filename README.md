@@ -7,7 +7,8 @@ Static site (no build step) hosting small browser games. Deployed free on Vercel
 ```
 index.html              Trang chủ — lưới ô vuông, mỗi ô là một trò chơi
 assets/shell.css        Style dùng chung (nền, nút, modal, toast)
-dua-linh-sang-song/     Trò chơi 1 — Đưa Lính Sang Sông
+dua-linh-sang-song/     Trò chơi 1 — Mãi Lộ Qua Sông (tên cũ: Đưa Lính Sang Sông,
+                        giữ nguyên tên thư mục để không đổi đường dẫn)
 manh-ghep-vo-cuc/       Trò chơi 2 — Mảnh Ghép Vô Cực
 thien-nien-su-sudoku/   Trò chơi 3 — Thiên Niên Sử Sudoku (kèm img/1..9.png)
 ky-uc-di-san/           Trò chơi 4 — Ký Ức Di Sản (kèm img/1..16.png)
@@ -18,23 +19,25 @@ vercel.json             cleanUrls
 
 Mở thẳng `index.html` bằng trình duyệt — không cần server, không cần cài gì.
 
-## Đưa Lính Sang Sông — luật
+## Mãi Lộ Qua Sông — luật
 
-- 4 người lính ở vạch xuất phát (bên phải), mỗi người 100 năng lượng.
+- 4 người lính ở vạch xuất phát (bên phải), mỗi người 100 quan tiền.
 - Ngoài vạch xuất phát còn 4 vạch. Lá cờ đỏ ở vạch 4 (trái nhất), **hàng thứ 2** từ trên xuống.
-- Mỗi bước đi (tiến/lùi) tốn 25 năng lượng.
-- Chuyền 25 năng lượng cho người lính ngay trên/dưới — **bắt buộc cùng một vạch**.
-- Người lính đang đủ 100 năng lượng không nhận chuyền được.
+- Mỗi bước đi (tiến/lùi) tốn 25 quan tiền.
+- Chuyền 25 quan tiền cho người lính ngay trên/dưới — **bắt buộc cùng một vạch**.
+- Một người chỉ cầm được tối đa 100 quan tiền, đang đủ 100 thì không nhận chuyền được.
+- Quan tiền vẽ bằng SVG (hằng `COIN`): vành vàng, lỗ vuông ở giữa — thay cho
+  biểu tượng tia sét của bản trước.
 - Chỉ người lính ở đúng hàng của cờ mới giành được cờ.
 - Lá cờ là **cờ hội ngũ sắc** (5 ô vuông lồng nhau theo ngũ hành, viền răng cưa
   hình ngọn lửa), vẽ bằng SVG trong `flagSVG()` / `heldFlagSVG()`. Cùng một hình
   được dùng lại làm favicon, brand-mark và ô trên trang chủ.
-- **Thắng:** lấy được cờ **và** cả 4 người lính đều đã rời vạch xuất phát ít nhất một lần
-  **và** cả 4 người đều đã quay về vạch xuất phát.
+- **Thắng:** lấy được cờ **và** cả 4 người lính đều đã xuống sông (rời vạch xuất phát)
+  ít nhất một lần **và** cả 4 người đều đã quay về vạch xuất phát.
 
-### Lời giải (16 nước, dùng đúng trọn 400 năng lượng)
+### Lời giải (16 nước, dùng đúng trọn 400 quan tiền)
 
-Tổng năng lượng 400 = đúng 16 nước đi. Lời giải **không được phí một nước nào**.
+Tổng 400 quan tiền = đúng 16 nước đi. Lời giải **không được phí một nước nào**.
 
 ```
 L1 tiến · L4 tiến · L3 tiến · L4 chuyền lên L3 · L3 tiến
@@ -44,7 +47,7 @@ L3 chuyền lên L2 · L2 lùi · L1 chuyền xuống L2 · L2 lùi (về đích
 L1 lùi · L3 lùi · L4 chuyền lên L3 · L3 lùi · L4 lùi
 ```
 
-Kết thúc: cả 4 người lính ở vạch 0, năng lượng 0/0/0/0.
+Kết thúc: cả 4 người lính ở vạch 0, quan tiền 0/0/0/0.
 
 ## Mảnh Ghép Vô Cực — luật
 
@@ -87,8 +90,22 @@ Kết thúc: cả 4 người lính ở vạch 0, năng lượng 0/0/0/0.
 - **Ghi chú**: hiện vật thu nhỏ nằm quanh mép ô, chừa trống vùng giữa.
 - Điền sai → ô **viền đỏ**; nút **Xóa ô** để bỏ. Sai **3 lần** thì màn
   chơi được đặt lại từ đầu.
-- 3 màn, đi lần lượt: xong màn này mới sang màn sau, không có bảng chọn màn.
-- Đề bài 3 màn đọc từ `Màn 1/2/3.jpg`; cả ba đã kiểm tra là có **lời giải duy nhất**.
+- **Cấp độ** (nút 🏅 ở hàng trên): vào trang là chọn cấp độ trước, sau đó
+  đổi lúc nào cũng được. Tạm có hai cấp mở:
+  - **Luyện tập** — 13 màn: 3 màn đầu đọc từ `Màn 1/2/3.jpg`, 10 màn sau đọc
+    từ các ảnh trong `Cấp luyện tập/` (bản 300 điểm, 41–44 ô cho sẵn).
+  - **Thi đấu** — 13 màn, đề đọc từ 14 ảnh trong `Cấp thi đấu/` (một ảnh
+    trùng đề nên chỉ còn 13 màn), 36–40 ô cho sẵn nên khó hơn.
+  - Ba dòng còn lại ghi **Cập nhật sau**, chưa bấm được.
+- **Chọn màn**: bấm vào dòng `cấp độ · Màn x/y` ngay trên bàn cờ. Màn được
+  đánh số **1..hết theo đúng thứ tự khai báo trong `TIERS`**; màn nào cũng
+  chơi được, không phải mở khoá. Màn đã giải xong trong phiên có dấu ✓.
+- Trong bảng chọn màn (và trong hộp chúc mừng, hộp sai 3 lần) luôn có lối
+  **chơi lại chính màn đó** hoặc **sang màn kế tiếp**; ở màn cuối thì nút
+  "Màn kế tiếp" mờ đi.
+- Mỗi cấp độ **nhớ riêng** màn đang chơi, nên đổi qua đổi lại không mất chỗ.
+- Cả 26 đề đều đã kiểm bằng thuật toán quay lui: có lời giải, lời giải là
+  **DUY NHẤT**, và không đề nào trùng đề nào.
 
 ## Ký Ức Di Sản — luật
 

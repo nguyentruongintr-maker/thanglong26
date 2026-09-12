@@ -44,14 +44,25 @@
 .piece.placed{cursor:default}
 .piece .face{
   fill:url(#clay);
-  stroke:#5e2c17;
+  /* hạt gốm mịn rải đều khắp mặt mảnh */
+  filter:url(#clayFace);
+  stroke:#8c4a28;
   stroke-width:1.6;
   stroke-linejoin:round;
 }
-.piece .side{ fill:#7a3a1e; transition:transform .24s cubic-bezier(.3,1.1,.4,1); }
+/* viền trong: mép mảnh gốm được mài tròn nên hứng sáng một viền mỏng */
+.piece .rim{
+  fill:none;
+  stroke:rgba(255,228,201,.17);
+  stroke-width:2.6;
+  stroke-linejoin:round;
+  pointer-events:none;
+}
+.piece.placed .rim{ stroke:rgba(255,228,201,.09) }
+.piece .side{ fill:#9d4f2c; transition:transform .24s cubic-bezier(.3,1.1,.4,1); }
 /* Mảnh đã nằm trong khung thì phẳng liền với nhau, không còn bóng đổ riêng */
 .piece.placed .side{ display:none; }
-.piece.placed .face{ stroke:#8a5230; stroke-width:1.1; }
+.piece.placed .face{ stroke:#a25b34; stroke-width:1.1; }
 .piece .art{ transition:transform .24s cubic-bezier(.3,1.1,.4,1); }
 .piece .lift{ transition:transform .18s cubic-bezier(.3,1.3,.5,1); }
 
@@ -457,15 +468,17 @@
     var silAbs = translatePath(sil, L.boardX, L.boardY);
 
     // --- defs ---
-    // Dai mau gom gan theo toa do MAN HINH: xoay hay lat manh khong doi sac do,
-    // nen khong lo huong dung (yeu cau 16 cua tro choi).
+    // Dai mau gom toa tron tu TAM manh (hinh manh dung tam o goc toa do rieng),
+    // nen xoay hay lat deu khong doi sac do -> khong he lo huong dung
+    // (yeu cau 16 cua tro choi).
     var defs = makeSVG('defs');
     defs.innerHTML =
-      '<linearGradient id="clay" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="' + L.H + '">' +
-        '<stop offset="0" stop-color="#d2794a"/>' +
-        '<stop offset="0.45" stop-color="#bd6438"/>' +
-        '<stop offset="1" stop-color="#9a4a27"/>' +
-      '</linearGradient>' +
+      '<radialGradient id="clay" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="' + (S * 0.86) + '">' +
+        '<stop offset="0" stop-color="#e79468"/>' +
+        '<stop offset="0.5" stop-color="#df8a5f"/>' +
+        '<stop offset="0.82" stop-color="#d27d52"/>' +
+        '<stop offset="1" stop-color="#c5724a"/>' +
+      '</radialGradient>' +
       '<linearGradient id="wood" gradientUnits="userSpaceOnUse" x1="0" y1="' + L.frameY + '" x2="0" y2="' + (L.frameY + FRAME) + '">' +
         '<stop offset="0" stop-color="#5b4433"/>' +
         '<stop offset="0.5" stop-color="#463322"/>' +
@@ -492,19 +505,23 @@
         '<feGaussianBlur stdDeviation="7"/>' +
       '</filter>' +
       '<clipPath id="holeClip"><path d="' + silAbs + '"/></clipPath>' +
-      // yc: lớp bụi gốm chỉ phủ trên các mảnh ghép.
-      // Vân sinh trong TOẠ ĐỘ SÂN CHƠI và đứng yên; chỉ có khuôn cắt chạy theo
-      // mảnh. Mảnh xê dịch thì vân dưới nó đổi theo chỗ đứng, nên vân không
-      // dính vào mảnh nào và không giúp nhớ mảnh hay hướng đúng.
-      '<filter id="dustTex" x="0" y="0" width="100%" height="100%">' +
-        '<feTurbulence type="fractalNoise" baseFrequency="0.42" numOctaves="3" stitchTiles="stitch"/>' +
-        '<feColorMatrix type="saturate" values="0"/>' +
+      // yc: bề mặt gốm nung — hạt mịn rải đều khắp mặt mảnh, biên độ nhỏ nên
+      // mắt thấy nhẵn như gốm mộc chứ không thành lớp bụi phủ. Vân đều tay,
+      // không có đám đậm nhạt riêng nên không thành dấu nhớ mảnh hay hướng.
+      '<filter id="clayFace" x="-4%" y="-4%" width="108%" height="108%">' +
+        '<feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" result="n"/>' +
+        '<feColorMatrix in="n" type="saturate" values="0" result="m"/>' +
+        '<feComponentTransfer in="m" result="grain">' +
+          '<feFuncR type="linear" slope="0.3" intercept="0.74"/>' +
+          '<feFuncG type="linear" slope="0.3" intercept="0.74"/>' +
+          '<feFuncB type="linear" slope="0.3" intercept="0.74"/>' +
+          '<feFuncA type="table" tableValues="1 1"/>' +
+        '</feComponentTransfer>' +
+        '<feBlend in="SourceGraphic" in2="grain" mode="multiply" result="b"/>' +
+        '<feComposite in="b" in2="SourceGraphic" operator="in"/>' +
       '</filter>';
     svg.appendChild(defs);
     layers.defs = defs;
-
-    layers.dustClip = makeSVG('clipPath', { id: 'pieceDust' });
-    defs.appendChild(layers.dustClip);
 
     // --- khung ban ---
     var gBoard = makeSVG('g', { filter: 'url(#frShadow)' });
@@ -551,14 +568,6 @@
       width: BOARD * 0.5, height: BOARD + 80, fill: 'url(#sheen)'
     }));
     svg.appendChild(layers.sheen);
-
-    layers.dust = makeSVG('g', { 'pointer-events': 'none', 'clip-path': 'url(#pieceDust)' });
-    layers.dust.setAttribute('style', 'mix-blend-mode:overlay');
-    layers.dust.appendChild(makeSVG('rect', {
-      x: 0, y: 0, width: L.W, height: L.H, filter: 'url(#dustTex)', opacity: 0.42
-    }));
-    svg.appendChild(layers.dust);
-
   }
 
   function playSheen() {
@@ -609,6 +618,14 @@
         var art = makeSVG('g', { 'class': 'art' });
         art.appendChild(makeSVG('path', { d: geom.d, 'class': 'face' }));
 
+        // vien sang mong nam GON BEN TRONG hinh manh
+        var cp = makeSVG('clipPath', { id: 'pcFace' + id });
+        cp.appendChild(makeSVG('path', { d: geom.d }));
+        layers.defs.appendChild(cp);
+        var gRim = makeSVG('g', { 'clip-path': 'url(#pcFace' + id + ')' });
+        gRim.appendChild(makeSVG('path', { d: geom.d, 'class': 'rim' }));
+        art.appendChild(gRim);
+
         var bads = [];
         for (var j = 0; j < 4; j++) {
           var bp = makeSVG('path', { d: geom.sides[j], 'class': 'bad' });
@@ -617,14 +634,9 @@
         lift.appendChild(art);
         g.appendChild(lift);
 
-        // đường bao dùng làm khuôn cắt cho lớp bụi
-        var clipShape = makeSVG('path', { d: geom.d });
-        layers.dustClip.appendChild(clipShape);
-
         var p = {
           id: id, row: r, col: c,
           g: g, lift: lift, art: art, side: sidePath, sideWrap: gSideWrap, bads: bads,
-          clip: clipShape,
           rot: 0, flip: false, placed: false, x: 0, y: 0
         };
         g.__piece = p;
@@ -641,16 +653,6 @@
     var t = 'rotate(' + (p.rot * 90) + ') scale(' + (p.flip ? -1 : 1) + ',1)';
     p.art.setAttribute('transform', t);
     p.side.setAttribute('transform', t);
-    applyDustClip(p);
-  }
-
-  // Khuôn cắt của lớp bụi bám đúng hình mảnh đang đứng ở đâu, xoay thế nào.
-  // Bản thân vân bụi thì đứng yên trong toạ độ sân chơi.
-  function applyDustClip(p) {
-    if (!p.clip) return;
-    p.clip.setAttribute('transform',
-      'translate(' + p.x + ',' + p.y + ') rotate(' + (p.rot * 90) + ')' +
-      ' scale(' + (p.flip ? -1 : 1) + ',1)');
   }
   function applySeat(p) {
     p.g.classList.toggle('placed', p.placed);
@@ -658,7 +660,6 @@
   }
   function applyPos(p) {
     p.g.setAttribute('transform', 'translate(' + p.x + ',' + p.y + ')');
-    applyDustClip(p);
   }
 
 

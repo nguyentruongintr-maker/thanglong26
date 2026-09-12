@@ -13,6 +13,7 @@ mai-lo-qua-song/        Trò chơi 1 — Mãi Lộ Qua Sông (tên cũ: Đưa L�
 manh-ghep-vo-cuc/       Trò chơi 2 — Mảnh Ghép Vô Cực
 thien-nien-su-sudoku/   Trò chơi 3 — Thiên Niên Sử Sudoku (kèm img/1..9.png)
 ky-uc-di-san/           Trò chơi 4 — Ký Ức Di Sản (kèm img/1..16.png)
+van-tu-hoc-si/          Trò chơi 5 — Văn Tự Học Sĩ
 vercel.json             cleanUrls
 ```
 
@@ -136,11 +137,38 @@ Kết thúc: cả 4 người lính ở vạch 0, quan tiền 0/0/0/0.
   đang hiển thị với trạng thái mong muốn, ép transition về đích, và nếu vẫn sai
   thì đặt thẳng `transform` — chạy sau mỗi lần lật lên và lật xuống.
 
+## Văn Tự Học Sĩ — luật
+
+- Mỗi màn có **một dòng gợi ý**, một dải **ô trống** và một bộ **thẻ chữ in
+  hoa** được xáo trộn (dữ liệu trong mảng `LEVELS`).
+- Số ô trống = **số ký tự của đáp án, không tính dấu cách**. Ô xếp cạnh nhau,
+  tối đa 7 ô một hàng rồi xuống hàng — không có khoảng ngắt giữa các từ.
+- **Kéo thẻ** từ khay lên ô: thả trong bán kính hút (`SNAP` ≈ 0,9 bề ngang ô)
+  thì thẻ bay vào ô, nhún một nhịp, loé sáng kèm vòng sóng và tia sáng — cùng
+  kiểu hiệu ứng ăn khớp của Mảnh Ghép Vô Cực.
+- Trong khay thẻ **kéo thả tự do**, thả đâu nằm đó; thẻ vừa cầm luôn nằm trên
+  các thẻ nó đè. Chạm thẻ rồi chạm ô cũng đặt được; chạm thẻ đang ở trên ô thì
+  thẻ trở về khay. Kéo thẻ từ ô này sang ô kia thì **hai thẻ đổi chỗ**.
+- **Xáo thẻ** chỉ xáo các thẻ còn trong khay; **Trả hết về khay** nhấc hết thẻ
+  khỏi ô rồi xếp khay lại cho gọn.
+- Xếp kín dải ô là trò tự soát: sai thì các ô sai **viền đỏ** và rung, sửa lại
+  rồi thử tiếp — không giới hạn số lần.
+- Thẻ nằm trên một lớp tuyệt đối của `.field`, vị trí trong khay ghi bằng phân
+  số `fx`/`fy` của lòng khay, nên đổi cỡ màn hình vẫn giữ đúng chỗ.
+
+### Màn 1
+
+| | |
+|---|---|
+| Đáp án | `NAM THIEU BAO THU BAY` (17 ký tự) |
+| Gợi ý | Năm diễn ra cuộc chiến chống giặc Nguyên Mông lần 2 |
+
 ## Thêm trò chơi mới
 
 1. Tạo thư mục `<ten-tro-choi>/index.html`.
 2. Link `../assets/shell.css`.
 3. Đổi một ô `.tile.soon` trong `index.html` thành thẻ `<a class="tile live" href="...">`.
 
-Lưới trang chủ cố định **4 cột** (2 cột khi màn hình ≤760px) nên mỗi hàng đúng 4 ô:
-hàng trên là 4 trò đang chơi được, hàng dưới là 4 ô `.tile.soon` chờ trò mới.
+Lưới trang chủ cố định **4 cột** (2 cột khi màn hình ≤760px) nên mỗi hàng đúng 4 ô.
+Hiện có **5 trò** chơi được và **3 ô** `.tile.soon` chờ trò mới; nhớ sửa luôn câu
+đếm trò ở khối `.hero` khi thêm trò mới.

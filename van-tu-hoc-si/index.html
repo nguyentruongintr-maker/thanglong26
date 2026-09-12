@@ -1,0 +1,893 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Văn Tự Học Sĩ — Thăng Long 26</title>
+<meta name="description" content="Trò chơi xếp chữ: kéo các thẻ chữ cái vào ô trống để tìm ra đáp án theo dòng gợi ý.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%9C%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/shell.css">
+<style>
+:root{
+  --tile-1:#f8f1e2;      /* mặt thẻ gốm ngà */
+  --tile-2:#e8d8bd;
+  --tile-edge:#b08a5c;
+  --ink:#5a2b18;
+}
+
+/* ===================== Dòng gợi ý ===================== */
+.hintbar{
+  display:flex; align-items:flex-start; gap:10px;
+  padding:12px 15px;
+  margin:0 0 12px;
+  line-height:1.45;
+}
+.hintbar .ic{ font-size:20px; line-height:1.2; flex:none }
+.hintbar .tx{ min-width:0 }
+.hintbar .k{
+  display:block;
+  font-size:11px; font-weight:900; letter-spacing:1.2px;
+  text-transform:uppercase; color:var(--accent);
+  margin-bottom:2px;
+}
+.hintbar .v{ display:block; font-size:15px; font-weight:800; color:var(--paper) }
+
+/* ===================== Sân chơi ===================== */
+/* Cả ô chữ và khay thẻ nằm trong .field. Thẻ được đặt tuyệt đối theo toạ độ
+   của .field nên bay từ khay vào ô chỉ là một phép đổi transform. */
+.field{
+  position:relative;
+  touch-action:none;
+  user-select:none;
+  -webkit-user-select:none;
+}
+
+/* --- dải ô trống --- */
+.slots{
+  display:flex; flex-wrap:wrap;
+  justify-content:center;
+  gap:var(--gap,7px);
+  margin:0 auto 14px;
+}
+.slot{
+  position:relative;
+  width:var(--cw,46px); height:var(--ch,56px);
+  border-radius:10px;
+  background:
+    linear-gradient(180deg, rgba(4,16,28,.55), rgba(4,16,28,.28));
+  border:2px solid rgba(255,255,255,.22);
+  box-shadow:inset 0 3px 7px rgba(2,10,18,.55);
+  transition:border-color .16s ease, box-shadow .18s ease, transform .18s ease;
+}
+/* vạch mờ giữa ô cho thấy đây là chỗ để đặt chữ */
+.slot::after{
+  content:'';
+  position:absolute; left:22%; right:22%; bottom:18%;
+  height:2px; border-radius:2px;
+  background:rgba(255,255,255,.16);
+}
+.slot.filled::after{ opacity:0 }
+/* ô đang được thẻ nhắm tới: sáng lên và hơi phình ra như đang hút thẻ */
+.slot.hot{
+  border-color:var(--accent);
+  box-shadow:inset 0 3px 7px rgba(2,10,18,.5), 0 0 0 3px rgba(255,210,63,.32), 0 0 18px rgba(255,210,63,.45);
+  transform:scale(1.06);
+}
+/* ô sai khi cả dải đã đầy */
+.slot.bad{
+  border-color:#ff6a5c;
+  box-shadow:inset 0 3px 7px rgba(2,10,18,.5), 0 0 0 3px rgba(255,106,92,.35);
+  animation:badshake .4s ease-in-out;
+}
+@keyframes badshake{
+  0%,100%{ transform:translateX(0) }
+  25%{ transform:translateX(-4px) }
+  75%{ transform:translateX(4px) }
+}
+
+/* --- khay thẻ --- */
+.tray{
+  position:relative;
+  border-radius:18px;
+  border:1px solid var(--glass-line);
+  background:
+    radial-gradient(70% 80% at 50% 0%, rgba(255,214,168,.13), transparent 70%),
+    rgba(255,255,255,.06);
+  box-shadow:inset 0 0 40px rgba(2,10,18,.45);
+}
+.tray .hintghost{
+  position:absolute; inset:0;
+  display:grid; place-items:center;
+  font-size:13px; font-weight:800; color:rgba(255,255,255,.30);
+  pointer-events:none;
+  transition:opacity .3s ease;
+}
+.tray.empty-hidden .hintghost{ opacity:0 }
+
+/* --- lớp thẻ --- */
+.tilelayer{ position:absolute; inset:0; pointer-events:none; z-index:4 }
+.tile{
+  position:absolute; left:0; top:0;
+  width:var(--cw,46px); height:var(--ch,56px);
+  padding:0; margin:0; border:0; background:none;
+  pointer-events:auto;
+  touch-action:none;
+  cursor:grab;
+  z-index:1;
+  transition:transform .22s cubic-bezier(.3,1.1,.4,1);
+}
+.tile.dragging{ cursor:grabbing; z-index:9; transition:none }
+.tile.noanim{ transition:none }
+.tile .face{
+  display:grid; place-items:center;
+  width:100%; height:100%;
+  border-radius:10px;
+  background:linear-gradient(168deg, var(--tile-1), var(--tile-2));
+  color:var(--ink);
+  font-family:inherit;
+  font-size:calc(var(--cw,46px) * .56);
+  font-weight:900;
+  line-height:1;
+  letter-spacing:.5px;
+  box-shadow:
+    0 3px 0 var(--tile-edge),
+    0 7px 14px rgba(2,12,22,.42),
+    inset 0 1px 0 rgba(255,255,255,.85);
+  transform:rotate(var(--rot,0deg));
+  transition:transform .18s cubic-bezier(.3,1.3,.5,1), box-shadow .18s ease;
+}
+.tile:focus-visible{ outline:none }
+.tile:focus-visible .face{ box-shadow:0 0 0 3px var(--accent), 0 3px 0 var(--tile-edge), 0 7px 14px rgba(2,12,22,.42) }
+.tile.dragging .face{
+  transform:rotate(var(--rot,0deg)) scale(1.13);
+  box-shadow:0 6px 0 var(--tile-edge), 0 20px 30px rgba(2,12,22,.5), inset 0 1px 0 rgba(255,255,255,.85);
+}
+/* thẻ đang chọn bằng cách chạm */
+.tile.sel .face{ box-shadow:0 0 0 3px var(--accent), 0 3px 0 var(--tile-edge), 0 9px 18px rgba(2,12,22,.45) }
+/* yc 6: thẻ nhún xuống như bị hút khít vào ô, kèm loé sáng */
+.tile.snapped .face{ animation:snapPunch .46s cubic-bezier(.26,1.55,.4,1) }
+@keyframes snapPunch{
+  0%{ transform:rotate(var(--rot,0deg)) scale(1.2) }
+  46%{ transform:rotate(var(--rot,0deg)) scale(.93) }
+  74%{ transform:rotate(var(--rot,0deg)) scale(1.03) }
+  100%{ transform:rotate(var(--rot,0deg)) scale(1) }
+}
+.tile.snapped .ch{ animation:snapFlash .45s ease-out }
+@keyframes snapFlash{
+  0%{ color:#fff; text-shadow:0 0 14px rgba(255,232,180,.95) }
+  100%{ color:var(--ink); text-shadow:none }
+}
+/* thẻ đã nằm đúng chỗ khi thắng */
+.tile.win .face{ background:linear-gradient(168deg,#fff8e2,#ffe9b8); box-shadow:0 3px 0 #c99a3f, 0 8px 18px rgba(2,12,22,.4), inset 0 1px 0 #fff }
+
+/* ===================== Hiệu ứng ===================== */
+.fx{ position:absolute; inset:0; pointer-events:none; z-index:8; overflow:visible }
+.ring{
+  position:absolute;
+  width:var(--cw,46px); height:var(--cw,46px);
+  margin:calc(var(--cw,46px) / -2) 0 0 calc(var(--cw,46px) / -2);
+  border-radius:50%;
+  border:3px solid rgba(255,217,168,.95);
+  animation:snapRing .55s cubic-bezier(.2,.85,.3,1) forwards;
+}
+@keyframes snapRing{
+  0%{ transform:scale(.34); opacity:.95; border-width:9px }
+  100%{ transform:scale(1.9); opacity:0; border-width:1px }
+}
+.spark{
+  position:absolute;
+  width:7px; height:7px; margin:-3.5px 0 0 -3.5px;
+  border-radius:50%;
+  background:#ffd89b;
+  animation:snapSpark .6s ease-out forwards;
+}
+@keyframes snapSpark{
+  0%{ transform:translate(0,0) scale(1); opacity:.95 }
+  100%{ transform:translate(var(--dx),var(--dy)) scale(.15); opacity:0 }
+}
+
+/* ===================== HUD + hàng nút ===================== */
+.bhud{
+  display:flex; align-items:center; gap:10px;
+  margin:6px 0 10px;
+}
+.bhud .side{ flex:1 1 0; display:flex; gap:8px; align-items:center; min-width:0 }
+.bhud .side.right{ justify-content:flex-end }
+.clock{
+  font-size:17px; font-weight:900; color:var(--accent);
+  font-variant-numeric:tabular-nums; letter-spacing:.5px; white-space:nowrap;
+}
+.lvlnow, .fillnow{
+  font-size:12px; font-weight:800; color:var(--muted); white-space:nowrap;
+}
+.fillnow b{ color:var(--accent) }
+
+.actionbar{
+  display:flex; gap:9px; justify-content:center; flex-wrap:wrap;
+  margin:14px 0 0;
+}
+
+.rules-list{ text-align:left; margin:14px 0 0; padding-left:20px; color:#d5e9f7; font-size:14px; line-height:1.7 }
+.rules-list li{ margin-bottom:6px }
+.rules-list b{ color:var(--accent) }
+.keyword{
+  font-size:clamp(17px,4.2vw,23px); font-weight:900; letter-spacing:2px;
+  color:var(--accent); margin:10px 0 2px; line-height:1.35;
+}
+.trophy{ font-size:52px; line-height:1; animation:pop .6s cubic-bezier(.3,1.5,.5,1) both }
+@keyframes pop{ from{ transform:scale(.3) rotate(-20deg); opacity:0 } to{ transform:none; opacity:1 } }
+.confetti{ position:fixed; inset:0; pointer-events:none; z-index:85; overflow:hidden }
+.cf{ position:absolute; width:9px; height:14px; border-radius:2px; animation:fall linear forwards }
+@keyframes fall{ 0%{ transform:translateY(-30px) rotate(0); opacity:1 } 100%{ transform:translateY(105vh) rotate(720deg); opacity:.9 } }
+
+@media (max-width:700px){
+  .topbar .lbl{ display:none }
+  .topbar .btn{ padding:0 13px }
+  .brand-text p{ display:none }
+  .hintbar .v{ font-size:14px }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">📜</div>
+      <div class="brand-text">
+        <h1>Văn Tự Học Sĩ</h1>
+        <p>Xếp thẻ chữ thành đáp án</p>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="btnRules" type="button" aria-label="Luật chơi"><span class="ico">ℹ️</span><span class="lbl">Luật chơi</span></button>
+      <button class="btn btn-danger" id="btnReset" type="button" aria-label="Chơi lại màn"><span class="ico">↻</span><span class="lbl">Chơi lại</span></button>
+      <a class="btn" href="../index.html" aria-label="Về Trang Chủ"><span class="ico">🏠</span><span class="lbl">Về Trang Chủ</span></a>
+    </div>
+  </header>
+
+  <!-- yc 2: một dòng gợi ý cho đáp án -->
+  <div class="panel hintbar">
+    <span class="ic">🔍</span>
+    <span class="tx">
+      <span class="k">Gợi ý</span>
+      <span class="v" id="hint">…</span>
+    </span>
+  </div>
+
+  <div class="bhud">
+    <div class="side left"><span class="lvlnow" id="statLevel">Màn 1/1</span></div>
+    <div class="clock" id="statTime">00:00</div>
+    <div class="side right"><span class="fillnow">Đã đặt: <b id="statFill">0/0</b></span></div>
+  </div>
+
+  <div class="field" id="field">
+    <!-- yc 5: số ô trống bằng số ký tự của đáp án, xếp cạnh nhau -->
+    <div class="slots" id="slots"></div>
+    <!-- yc 4: khay thẻ, kéo thả tự do trong này -->
+    <div class="tray" id="tray">
+      <span class="hintghost">Kéo thẻ chữ lên các ô trống ở trên</span>
+    </div>
+    <div class="tilelayer" id="tilelayer"></div>
+    <div class="fx" id="fx"></div>
+  </div>
+
+  <div class="actionbar">
+    <button class="btn" id="btnShuffle" type="button"><span class="ico">🔀</span><span>Xáo thẻ</span></button>
+    <button class="btn" id="btnClear" type="button"><span class="ico">↩️</span><span>Trả hết về khay</span></button>
+  </div>
+
+</div>
+
+<div class="toast-host" id="toasts" aria-live="polite"></div>
+
+<!-- Thắng màn -->
+<div class="modal-back" id="winBack" role="dialog" aria-modal="true" aria-labelledby="winTitle">
+  <div class="modal">
+    <div class="trophy">🏆</div>
+    <h2 id="winTitle">Đúng rồi!</h2>
+    <p id="winMsg">Bạn đã xếp đủ các thẻ chữ thành đáp án.</p>
+    <p class="keyword" id="winKey"></p>
+    <p id="winStats" style="color:var(--accent);font-weight:800"></p>
+    <div class="modal-actions" id="winActions"></div>
+  </div>
+</div>
+
+<!-- Luật chơi -->
+<div class="modal-back" id="rulesBack" role="dialog" aria-modal="true" aria-labelledby="rulesTitle">
+  <div class="modal">
+    <h2 id="rulesTitle">Luật chơi</h2>
+    <ol class="rules-list">
+      <li>Mỗi màn có một <b>dòng gợi ý</b>, một dải <b>ô trống</b> và một bộ <b>thẻ chữ in hoa</b> xáo trộn.</li>
+      <li><b>Kéo thẻ</b> từ khay lên ô trống để xếp thành đáp án. Thả gần ô là thẻ <b>tự hút</b> vào.</li>
+      <li>Trong khay, thẻ <b>kéo thả tự do</b>, muốn đặt ở đâu cũng được.</li>
+      <li>Chạm một thẻ rồi chạm ô trống cũng đặt được; chạm thẻ đang ở trên ô thì thẻ <b>trở về khay</b>.</li>
+      <li>Số ô trống bằng <b>số ký tự</b> của đáp án, <b>không tính dấu cách</b>.</li>
+      <li>Xếp kín dải ô là trò tự soát: sai thì các ô sai <b>viền đỏ</b>, sửa lại rồi thử tiếp.</li>
+    </ol>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="rulesClose" type="button">Đã hiểu</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ==================================================================
+     1. DỮ LIỆU MÀN CHƠI
+     answer : đáp án, viết có dấu cách cho dễ đọc — dấu cách KHÔNG tính
+              thành ô trống (yc 5).
+     hint   : dòng gợi ý hiện ngay trên bàn.
+     letters: bộ ký tự cho sẵn. Phải cùng tập hợp chữ với đáp án, chỉ khác
+              thứ tự; vào màn còn được xáo thêm một lần nữa (yc 2).
+     ================================================================== */
+  var LEVELS = [
+    {
+      answer: 'NAM THIEU BAO THU BAY',
+      hint: 'Năm diễn ra cuộc chiến chống giặc Nguyên Mông lần 2',
+      letters: 'NAMTHIEUBAOTHUBAY'
+    }
+  ];
+
+  /* ==================================================================
+     2. TRẠNG THÁI
+     ================================================================== */
+  var els = {}, level = 0;
+  var answer = '';               // đáp án đã bỏ dấu cách
+  var tiles = [];                // { id, ch, el, face, slot, fx, fy, rot }
+  var slots = [];                // slots[i] = id thẻ đang nằm ở ô i, hoặc -1
+  var slotEls = [];
+  var sel = -1;                  // thẻ đang chọn bằng cách chạm
+  var drag = null;               // { id, dx, dy, moved }
+  var hot = -1;                  // ô đang được nhắm tới
+  var done = false;
+  var placeCount = 0;
+  var CW = 46, CH = 56, GAP = 7, PER_ROW = 6, SNAP = 40;
+  var zTop = 1;                  // thẻ vừa cầm được xếp lên trên các thẻ khác
+  var geo = { tray: null };
+  var timer = { t0: 0, elapsed: 0, running: false, id: null };
+
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+
+  /* ==================================================================
+     3. DỰNG BÀN
+     ================================================================== */
+  function loadLevel(n) {
+    level = n;
+    var L = LEVELS[n];
+    answer = L.answer.replace(/\s+/g, '').toUpperCase();
+
+    var chars = (L.letters || answer).toUpperCase().replace(/\s+/g, '').split('');
+    // Bộ thẻ phải là đúng các chữ của đáp án, chỉ khác thứ tự — lệch một chữ
+    // là màn không thể xếp ra đáp án.
+    if (chars.slice().sort().join('') !== answer.split('').sort().join('')) {
+      console.warn('Màn ' + (n + 1) + ': bộ thẻ không khớp đáp án', L);
+    }
+    shuffle(chars);
+
+    slots = [];
+    for (var i = 0; i < answer.length; i++) slots.push(-1);
+
+    els.slots.innerHTML = '';
+    slotEls = [];
+    for (i = 0; i < answer.length; i++) {
+      var sl = document.createElement('div');
+      sl.className = 'slot';
+      sl.dataset.i = i;
+      els.slots.appendChild(sl);
+      slotEls.push(sl);
+    }
+
+    els.tilelayer.innerHTML = '';
+    tiles = [];
+    zTop = 1;
+    for (i = 0; i < chars.length; i++) tiles.push(makeTile(i, chars[i]));
+
+    els.hint.textContent = L.hint;
+    els.statLevel.textContent = 'Màn ' + (n + 1) + '/' + LEVELS.length;
+    sel = -1; hot = -1; done = false; placeCount = 0;
+    resetTimer();
+    closeModal(els.winBack);
+    layout();
+    scatter();
+    quietRender();
+  }
+
+  function makeTile(id, ch) {
+    var b = document.createElement('button');
+    b.className = 'tile';
+    b.type = 'button';
+    b.dataset.id = id;
+    b.setAttribute('aria-label', 'Thẻ chữ ' + ch);
+    b.innerHTML = '<span class="face"><span class="ch">' + ch + '</span></span>';
+    els.tilelayer.appendChild(b);
+    var t = { id: id, ch: ch, el: b, face: b.firstChild, slot: -1, fx: 0, fy: 0, rot: 0 };
+    b.addEventListener('pointerdown', onTileDown);
+    return t;
+  }
+
+  function shuffle(a) {
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  /* ==================================================================
+     4. ĐO ĐẠC & XẾP CHỖ
+     Ô chữ và khay đều co theo bề ngang màn hình. Thẻ nằm trên một lớp
+     tuyệt đối nên chỉ cần đo lại tâm ô rồi đặt lại transform.
+     ================================================================== */
+  function layout() {
+    var n = answer.length || 1;
+    var W = els.field.clientWidth;
+
+    // Chia ô ra tối đa 7 ô một hàng để ô không bị bé quá trên điện thoại
+    var rows = Math.ceil(n / 7);
+    PER_ROW = Math.ceil(n / rows);
+    GAP = W < 420 ? 5 : 7;
+    CW = Math.floor((W - (PER_ROW - 1) * GAP) / PER_ROW);
+    CW = clamp(CW, 26, 64);
+    CH = Math.round(CW * 1.2);
+    SNAP = Math.round(CW * 0.9);
+
+    els.field.style.setProperty('--cw', CW + 'px');
+    els.field.style.setProperty('--ch', CH + 'px');
+    els.field.style.setProperty('--gap', GAP + 'px');
+    els.slots.style.width = (PER_ROW * CW + (PER_ROW - 1) * GAP) + 'px';
+
+    // Khay đủ chỗ cho tất cả thẻ, xếp cùng số cột với dải ô
+    var trayRows = Math.ceil(tiles.length / PER_ROW);
+    var pad = 12;
+    els.tray.style.height = (trayRows * CH + (trayRows - 1) * GAP + pad * 2) + 'px';
+
+    var fr = els.field.getBoundingClientRect();
+    var tr = els.tray.getBoundingClientRect();
+    geo.tray = {
+      x: tr.left - fr.left + pad, y: tr.top - fr.top + pad,
+      w: tr.width - pad * 2, h: tr.height - pad * 2
+    };
+    geo.centers = [];
+    for (var i = 0; i < slotEls.length; i++) {
+      var r = slotEls[i].getBoundingClientRect();
+      geo.centers.push({
+        x: r.left - fr.left + r.width / 2,
+        y: r.top - fr.top + r.height / 2
+      });
+    }
+  }
+
+  function slotCenter(i) { return geo.centers[i]; }
+
+  // Xếp một danh sách thẻ thành hàng lối gọn gàng trong khay, mỗi thẻ hơi
+  // nghiêng một chút cho có nét. Lưới ô trong khay luôn tính theo TỔNG số thẻ
+  // nên thẻ còn lại vẫn nằm đúng hàng lối cũ khi bớt dần thẻ.
+  function arrangeTray(list) {
+    var per = PER_ROW;
+    var rows = Math.ceil(tiles.length / per) || 1;
+    var freeX = Math.max(0, geo.tray.w - CW), freeY = Math.max(0, geo.tray.h - CH);
+    for (var i = 0; i < list.length; i++) {
+      var r = Math.floor(i / per), c = i % per;
+      var inRow = Math.min(per, tiles.length - r * per);
+      var x = inRow > 1 ? c * (freeX / (inRow - 1)) : freeX / 2;
+      var y = rows > 1 ? r * (freeY / (rows - 1)) : freeY / 2;
+      list[i].fx = freeX > 0 ? clamp(x / freeX, 0, 1) : 0.5;
+      list[i].fy = freeY > 0 ? clamp(y / freeY, 0, 1) : 0.5;
+      list[i].rot = (Math.random() * 5 - 2.5);
+    }
+  }
+
+  function scatter() {
+    for (var i = 0; i < tiles.length; i++) tiles[i].slot = -1;
+    for (var k = 0; k < slots.length; k++) slots[k] = -1;
+    arrangeTray(tiles.slice());
+  }
+
+  function freeTiles() {
+    var out = [];
+    for (var i = 0; i < tiles.length; i++) if (tiles[i].slot < 0) out.push(tiles[i]);
+    return out;
+  }
+
+  function tileTarget(t) {
+    if (t.slot >= 0) {
+      var c = slotCenter(t.slot);
+      return { x: c.x - CW / 2, y: c.y - CH / 2 };
+    }
+    return {
+      x: geo.tray.x + t.fx * Math.max(0, geo.tray.w - CW),
+      y: geo.tray.y + t.fy * Math.max(0, geo.tray.h - CH)
+    };
+  }
+
+  function moveTile(t, x, y) {
+    t.el.style.transform = 'translate(' + Math.round(x) + 'px,' + Math.round(y) + 'px)';
+  }
+
+  /* ==================================================================
+     5. VẼ
+     ================================================================== */
+  function render() {
+    for (var i = 0; i < tiles.length; i++) {
+      var t = tiles[i];
+      if (drag && drag.id === t.id) continue;      // thẻ đang theo ngón tay
+      var p = tileTarget(t);
+      moveTile(t, p.x, p.y);
+      t.face.style.setProperty('--rot', (t.slot >= 0 ? 0 : t.rot) + 'deg');
+      t.el.classList.toggle('sel', sel === t.id);
+      t.el.classList.toggle('win', done);
+      t.el.setAttribute('aria-label',
+        'Thẻ chữ ' + t.ch + (t.slot >= 0 ? ', đang ở ô ' + (t.slot + 1) : ', đang ở khay'));
+    }
+    for (i = 0; i < slotEls.length; i++) {
+      slotEls[i].classList.toggle('filled', slots[i] >= 0);
+      slotEls[i].classList.toggle('hot', hot === i);
+    }
+    var filled = 0;
+    for (i = 0; i < slots.length; i++) if (slots[i] >= 0) filled++;
+    els.statFill.textContent = filled + '/' + slots.length;
+    els.tray.classList.toggle('empty-hidden', filled > 0);
+  }
+
+  /* ==================================================================
+     6. ĐẶT THẺ / TRẢ THẺ
+     ================================================================== */
+  function returnToTray(t) {
+    if (t.slot >= 0) slots[t.slot] = -1;
+    t.slot = -1;
+  }
+
+  // yc 6: thẻ bay vào ô rồi nhún một nhịp, kèm vòng sóng và tia sáng
+  function placeInSlot(t, j, animate) {
+    var prev = slots[j];
+    var from = t.slot;
+    if (prev >= 0 && prev !== t.id) {
+      var o = tiles[prev];
+      if (from >= 0) { slots[from] = prev; o.slot = from; }   // đổi chỗ hai thẻ
+      else { o.slot = -1; }                                   // thẻ cũ về khay
+    } else if (from >= 0) {
+      slots[from] = -1;
+    }
+    slots[j] = t.id;
+    t.slot = j;
+    placeCount++;
+    startTimer();
+
+    if (animate !== false) {
+      t.el.classList.remove('snapped');
+      void t.el.offsetWidth;
+      t.el.classList.add('snapped');
+      var c = slotCenter(j);
+      burst(c.x, c.y);
+    }
+    sel = -1;
+    render();
+    checkWin();
+  }
+
+  function burst(x, y) {
+    var r = document.createElement('div');
+    r.className = 'ring';
+    r.style.left = x + 'px'; r.style.top = y + 'px';
+    els.fx.appendChild(r);
+    setTimeout(function () { if (r.parentNode) r.parentNode.removeChild(r); }, 620);
+    for (var i = 0; i < 8; i++) {
+      var s = document.createElement('div');
+      s.className = 'spark';
+      var a = (Math.PI * 2 * i) / 8 + Math.random() * 0.4;
+      var d = 22 + Math.random() * 16;
+      s.style.left = x + 'px'; s.style.top = y + 'px';
+      s.style.setProperty('--dx', Math.cos(a) * d + 'px');
+      s.style.setProperty('--dy', Math.sin(a) * d + 'px');
+      els.fx.appendChild(s);
+      (function (node) {
+        setTimeout(function () { if (node.parentNode) node.parentNode.removeChild(node); }, 680);
+      })(s);
+    }
+  }
+
+  function nearestSlot(cx, cy) {
+    var best = -1, bestD = SNAP;
+    for (var i = 0; i < slotEls.length; i++) {
+      var c = slotCenter(i);
+      var d = Math.sqrt((c.x - cx) * (c.x - cx) + (c.y - cy) * (c.y - cy));
+      if (d < bestD) { bestD = d; best = i; }
+    }
+    return best;
+  }
+
+  /* ==================================================================
+     7. KÉO THẢ
+     ================================================================== */
+  function onTileDown(e) {
+    if (done) return;
+    var t = tiles[+e.currentTarget.dataset.id];
+    var fr = els.field.getBoundingClientRect();
+    var p = tileTarget(t);
+    drag = {
+      id: t.id, moved: false,
+      dx: (e.clientX - fr.left) - p.x,
+      dy: (e.clientY - fr.top) - p.y
+    };
+    t.el.classList.add('dragging');
+    t.el.style.zIndex = ++zTop;
+    t.el.setPointerCapture(e.pointerId);
+    t.el.addEventListener('pointermove', onTileMove);
+    t.el.addEventListener('pointerup', onTileUp);
+    t.el.addEventListener('pointercancel', onTileUp);
+    startTimer();
+  }
+
+  function onTileMove(e) {
+    if (!drag) return;
+    var t = tiles[drag.id];
+    var fr = els.field.getBoundingClientRect();
+    var x = (e.clientX - fr.left) - drag.dx;
+    var y = (e.clientY - fr.top) - drag.dy;
+    if (!drag.moved &&
+        (Math.abs(x - tileTarget(t).x) > 3 || Math.abs(y - tileTarget(t).y) > 3)) {
+      drag.moved = true;
+    }
+    moveTile(t, x, y);
+    var h = nearestSlot(x + CW / 2, y + CH / 2);
+    if (h !== hot) { hot = h; render(); }
+  }
+
+  function onTileUp(e) {
+    if (!drag) return;
+    var t = tiles[drag.id];
+    var fr = els.field.getBoundingClientRect();
+    var x = (e.clientX - fr.left) - drag.dx;
+    var y = (e.clientY - fr.top) - drag.dy;
+    var target = nearestSlot(x + CW / 2, y + CH / 2);
+    var moved = drag.moved;
+
+    t.el.classList.remove('dragging');
+    t.el.removeEventListener('pointermove', onTileMove);
+    t.el.removeEventListener('pointerup', onTileUp);
+    t.el.removeEventListener('pointercancel', onTileUp);
+    drag = null;
+    hot = -1;
+
+    if (!moved) { tapTile(t); return; }           // chạm chứ không kéo
+
+    if (target >= 0) {
+      placeInSlot(t, target, true);
+      return;
+    }
+    // thả tự do trong khay: giữ đúng chỗ vừa thả (yc 4)
+    returnToTray(t);
+    var freeX = Math.max(0, geo.tray.w - CW), freeY = Math.max(0, geo.tray.h - CH);
+    t.fx = freeX > 0 ? clamp((x - geo.tray.x) / freeX, 0, 1) : 0.5;
+    t.fy = freeY > 0 ? clamp((y - geo.tray.y) / freeY, 0, 1) : 0.5;
+    render();
+  }
+
+  // Chạm thẻ: đang ở ô thì trả về khay, đang ở khay thì chọn/bỏ chọn
+  function tapTile(t) {
+    if (t.slot >= 0) {
+      returnToTray(t);
+      sel = -1;
+      render();
+      return;
+    }
+    sel = (sel === t.id) ? -1 : t.id;
+    render();
+  }
+
+  function onSlotTap(e) {
+    if (done) return;
+    var sl = e.target.closest('.slot');
+    if (!sl) return;
+    var j = +sl.dataset.i;
+    if (sel >= 0) { placeInSlot(tiles[sel], j, true); return; }
+    // chạm ô đang có thẻ thì nhấc thẻ đó ra
+    if (slots[j] >= 0) { returnToTray(tiles[slots[j]]); render(); }
+  }
+
+  /* ==================================================================
+     8. SOÁT ĐÁP ÁN
+     ================================================================== */
+  function checkWin() {
+    for (var i = 0; i < slots.length; i++) if (slots[i] < 0) return;   // chưa kín
+
+    var wrong = [];
+    for (i = 0; i < slots.length; i++) {
+      if (tiles[slots[i]].ch !== answer.charAt(i)) wrong.push(i);
+    }
+    if (wrong.length) {
+      for (i = 0; i < wrong.length; i++) {
+        var sl = slotEls[wrong[i]];
+        sl.classList.remove('bad');
+        void sl.offsetWidth;
+        sl.classList.add('bad');
+      }
+      toast('Chưa đúng — ' + wrong.length + ' ô còn sai chỗ', 'bad');
+      setTimeout(function () {
+        for (var k = 0; k < slotEls.length; k++) slotEls[k].classList.remove('bad');
+      }, 1600);
+      return;
+    }
+
+    done = true;
+    sel = -1;
+    stopTimer();
+    render();
+    confetti();
+    els.winKey.textContent = LEVELS[level].answer.toUpperCase();
+    els.winStats.textContent = 'Thời gian: ' + fmt(timer.elapsed) + ' · Số lần đặt thẻ: ' + placeCount;
+    els.winActions.innerHTML = '';
+    var again = document.createElement('button');
+    again.className = 'btn btn-primary'; again.type = 'button';
+    again.textContent = '↻ Chơi lại màn này';
+    again.addEventListener('click', function () { loadLevel(level); });
+    els.winActions.appendChild(again);
+    if (level < LEVELS.length - 1) {
+      var nx = document.createElement('button');
+      nx.className = 'btn'; nx.type = 'button';
+      nx.textContent = '▶ Sang Màn ' + (level + 2);
+      nx.addEventListener('click', function () { loadLevel(level + 1); });
+      els.winActions.appendChild(nx);
+    }
+    var home = document.createElement('a');
+    home.className = 'btn'; home.href = '../index.html';
+    home.textContent = '🏠 Về Trang Chủ';
+    els.winActions.appendChild(home);
+    openModal(els.winBack);
+  }
+
+  /* ==================================================================
+     9. ĐỒNG HỒ / HIỆU ỨNG / MODAL
+     ================================================================== */
+  function fmt(ms) {
+    var s = Math.floor(ms / 1000), m = Math.floor(s / 60);
+    s = s % 60;
+    return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  }
+  function startTimer() {
+    if (timer.running || done) return;
+    timer.running = true;
+    timer.t0 = Date.now() - timer.elapsed;
+    timer.id = setInterval(function () {
+      timer.elapsed = Date.now() - timer.t0;
+      els.statTime.textContent = fmt(timer.elapsed);
+    }, 250);
+  }
+  function stopTimer() {
+    timer.running = false;
+    if (timer.id) { clearInterval(timer.id); timer.id = null; }
+  }
+  function resetTimer() { stopTimer(); timer.elapsed = 0; els.statTime.textContent = '00:00'; }
+
+  function toast(msg, kind) {
+    var t = document.createElement('div');
+    t.className = 'toast ' + (kind || '');
+    t.textContent = msg;
+    els.toasts.appendChild(t);
+    setTimeout(function () {
+      t.classList.add('out');
+      setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 320);
+    }, 1900);
+  }
+
+  function confetti() {
+    var host = document.createElement('div');
+    host.className = 'confetti';
+    var colors = ['#c4703f', '#e0894f', '#ffd23f', '#8a4a2a', '#ffffff', '#d8552f'];
+    for (var i = 0; i < 70; i++) {
+      var el = document.createElement('div');
+      el.className = 'cf';
+      el.style.left = (Math.random() * 100) + '%';
+      el.style.background = colors[i % colors.length];
+      el.style.animationDuration = (2.2 + Math.random() * 1.8) + 's';
+      el.style.animationDelay = (Math.random() * 0.7) + 's';
+      host.appendChild(el);
+    }
+    document.body.appendChild(host);
+    setTimeout(function () { if (host.parentNode) host.parentNode.removeChild(host); }, 5200);
+  }
+
+  function openModal(m) { m.classList.add('show'); }
+  function closeModal(m) { m.classList.remove('show'); }
+
+  /* ==================================================================
+     10. KHỞI ĐỘNG
+     ================================================================== */
+  // Vẽ mà không cho thẻ bay: dùng khi vào màn và khi màn hình đổi cỡ
+  function quietRender() {
+    for (var i = 0; i < tiles.length; i++) tiles[i].el.classList.add('noanim');
+    render();
+    void els.field.offsetWidth;
+    for (i = 0; i < tiles.length; i++) tiles[i].el.classList.remove('noanim');
+  }
+
+  function relayout() {
+    layout();
+    quietRender();
+  }
+
+  function init() {
+    ['field', 'slots', 'tray', 'tilelayer', 'fx', 'hint', 'toasts',
+     'statLevel', 'statTime', 'statFill',
+     'btnRules', 'btnReset', 'btnShuffle', 'btnClear',
+     'winBack', 'winTitle', 'winMsg', 'winKey', 'winStats', 'winActions',
+     'rulesBack', 'rulesClose'].forEach(function (id) {
+      els[id] = document.getElementById(id);
+    });
+
+    loadLevel(0);
+
+    els.slots.addEventListener('click', onSlotTap);
+    els.btnReset.addEventListener('click', function () {
+      loadLevel(level);
+      toast('Đã xếp lại từ đầu', 'bad');
+    });
+    // Xáo lại thứ tự các thẻ CÒN TRONG KHAY, thẻ đã đặt lên ô thì để yên
+    els.btnShuffle.addEventListener('click', function () {
+      if (done) return;
+      arrangeTray(shuffle(freeTiles()));
+      sel = -1;
+      render();
+    });
+    // Nhấc hết thẻ khỏi ô rồi xếp lại khay cho gọn
+    els.btnClear.addEventListener('click', function () {
+      if (done) return;
+      for (var i = 0; i < tiles.length; i++) returnToTray(tiles[i]);
+      arrangeTray(tiles.slice());
+      sel = -1;
+      render();
+    });
+    els.btnRules.addEventListener('click', function () { openModal(els.rulesBack); });
+    els.rulesClose.addEventListener('click', function () { closeModal(els.rulesBack); });
+    els.rulesBack.addEventListener('click', function (e) {
+      if (e.target === els.rulesBack) closeModal(els.rulesBack);
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { closeModal(els.rulesBack); }
+    });
+
+    window.addEventListener('resize', relayout);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(relayout);
+
+    // API cho kiểm thử tự động
+    window.__game = {
+      get answer() { return answer; },
+      get slots() { return slots; },
+      get done() { return done; },
+      get sel() { return sel; },
+      get placeCount() { return placeCount; },
+      tiles: function () { return tiles; },
+      letters: function () { return tiles.map(function (t) { return t.ch; }).join(''); },
+      row: function () {
+        return slots.map(function (id) { return id < 0 ? '_' : tiles[id].ch; }).join('');
+      },
+      place: function (tileId, slotIdx) { placeInSlot(tiles[tileId], slotIdx, true); },
+      pull: function (slotIdx) {
+        if (slots[slotIdx] >= 0) { returnToTray(tiles[slots[slotIdx]]); render(); }
+      },
+      solve: function () {
+        for (var i = 0; i < tiles.length; i++) returnToTray(tiles[i]);
+        for (i = 0; i < answer.length; i++) {
+          for (var k = 0; k < tiles.length; k++) {
+            if (tiles[k].slot < 0 && tiles[k].ch === answer.charAt(i)) {
+              placeInSlot(tiles[k], i, false);
+              break;
+            }
+          }
+        }
+        return done;
+      },
+      load: loadLevel,
+      elapsed: function () { return timer.elapsed; }
+    };
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>
+</body>
+</html>
